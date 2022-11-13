@@ -8,6 +8,22 @@
 
 #include <JuceHeader.h>
 
+enum Slope
+{
+    Slope12,
+    Slope24,
+    Slope36,
+    Slope48
+};
+
+struct ChainSettings 
+{
+    float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
+    float lowCutFreq{ 0 }, hiCutFreq{ 0 };
+    Slope lowCutSlope{ Slope::Slope12 }, hiCutSlope{ Slope::Slope12 };
+};
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+
 //==============================================================================
 /**
 */
@@ -63,8 +79,54 @@ private:
     using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
     using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
 
-    MonoChain leftChannel, rightChannel;
+    MonoChain leftChain, rightChain;
+    enum Chainpositons
+    {
+        LowCut,
+        Peak,
+        HiCut
+    };
 
+    void updatePeakFilter(const ChainSettings& ChainSettings);
+    using Coefficients = Filter::CoefficientsPtr;
+    static void updateCoeffs(Coefficients& old, const Coefficients& replacements);
+
+    template<int Id, typename Chaintype, typename CoefficientType>
+    void update(Chaintype& chain, const CoefficientType& coefficeints)
+    {
+        updateCoeffs(chain.template get<Id>().coefficients, coefficeints[Id]);
+        chain.template setBypassed<Id>(false);
+    }
+
+    template<typename ChainType, typename CoefficientType>
+    void updateCutFilter(ChainType& leftLowCut, const CoefficientType& cutCoeffs, const Slope& lowCutSlope)
+    {
+        leftLowCut.template setBypassed<0>(true);
+        leftLowCut.template setBypassed<1>(true);
+        leftLowCut.template setBypassed<2>(true);
+        leftLowCut.template setBypassed<3>(true);
+
+        switch (lowCutSlope)
+        {
+        case Slope48:
+        {
+            update<3>(leftLowCut, cutCoeffs);
+        }
+        case Slope36:
+        {
+            update<2>(leftLowCut, cutCoeffs);
+        }
+        case Slope24:
+        {
+            update<1>(leftLowCut, cutCoeffs);
+        }
+        case Slope12:
+        {
+            update<0>(leftLowCut, cutCoeffs);
+        } 
+        }
+
+    }
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessor)
