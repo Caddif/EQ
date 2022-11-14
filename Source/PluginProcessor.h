@@ -128,6 +128,12 @@ private:
 
     }
 
+    void updateLowCutFilter( const ChainSettings& chainSettings);
+    void updateHiCutFilter(const ChainSettings& chainSettings);
+
+    void updateAllfilters();
+
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessor)
 };
