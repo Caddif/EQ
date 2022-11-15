@@ -16,8 +16,7 @@ enum Slope
     Slope48
 };
 
-struct ChainSettings 
-{
+struct ChainSettings{
     float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
     float lowCutFreq{ 0 }, hiCutFreq{ 0 };
     Slope lowCutSlope{ Slope::Slope12 }, hiCutSlope{ Slope::Slope12 };
@@ -130,9 +129,7 @@ private:
 
     void updateLowCutFilter( const ChainSettings& chainSettings);
     void updateHiCutFilter(const ChainSettings& chainSettings);
-
-    void updateAllfilters();
-
+    void updateAllfilterParams();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessor)

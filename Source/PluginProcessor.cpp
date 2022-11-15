@@ -101,32 +101,7 @@ void EQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     leftChain.prepare(spec);
     rightChain.prepare(spec);
 
-    /*auto chainSettings = getChainSettings(apvts);
-
-    updatePeakFilter(chainSettings);
-
-    auto lowCutCoeffs = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
-        chainSettings.lowCutFreq, 
-        sampleRate, 
-        2 * (chainSettings.lowCutSlope + 1));
-
-    auto& leftLowCut = leftChain.get<Chainpositons::LowCut>();
-    auto& rightLowCut = rightChain.get<Chainpositons::LowCut>();
-
-    updateCutFilter(leftLowCut, lowCutCoeffs, chainSettings.lowCutSlope);
-    updateCutFilter(rightLowCut, lowCutCoeffs, chainSettings.lowCutSlope);
-
-    auto hiCutCoeffs = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
-        chainSettings.hiCutFreq,
-        sampleRate,
-        2 * (chainSettings.hiCutSlope + 1));
-
-    auto& leftHiCut = leftChain.get<Chainpositons::LowCut>();
-    auto& rightHiCut = rightChain.get<Chainpositons::LowCut>();
-
-    updateCutFilter(leftHiCut, hiCutCoeffs, chainSettings.hiCutSlope);
-    updateCutFilter(rightHiCut, hiCutCoeffs, chainSettings.hiCutSlope);*/
-    updateAllfilters();
+    updateAllfilterParams();
 }
 
 void EQAudioProcessor::releaseResources()
@@ -176,39 +151,7 @@ void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-
-    /*auto chainSettings = getChainSettings(apvts);
-
-    updatePeakFilter(chainSettings);
-
-    auto lowCutCoeffs = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
-        chainSettings.lowCutFreq,
-        getSampleRate(),
-        2 * (chainSettings.lowCutSlope + 1));
-
-    auto& leftLowCut = leftChain.get<Chainpositons::LowCut>();
-    auto& rightLowCut = rightChain.get<Chainpositons::LowCut>();
-
-    updateCutFilter(leftLowCut, lowCutCoeffs, chainSettings.lowCutSlope);
-    updateCutFilter(rightLowCut, lowCutCoeffs, chainSettings.lowCutSlope);
-
-    auto hiCutCoeffs = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
-        chainSettings.hiCutFreq,
-        getSampleRate(),
-        2 * (chainSettings.hiCutSlope + 1));
-
-    auto& leftHiCut = leftChain.get<Chainpositons::LowCut>();
-    auto& rightHiCut = rightChain.get<Chainpositons::LowCut>();
-
-    updateCutFilter(leftHiCut, hiCutCoeffs, chainSettings.hiCutSlope);
-    updateCutFilter(rightHiCut, hiCutCoeffs, chainSettings.hiCutSlope);*/
-    updateAllfilters();
+    updateAllfilterParams();
 
     juce::dsp::AudioBlock<float> block(buffer);
     auto leftBlock = block.getSingleChannelBlock(0);
@@ -230,8 +173,8 @@ bool EQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* EQAudioProcessor::createEditor()
 {
-    // return new EQAudioProcessorEditor (*this);
-    return new juce::GenericAudioProcessorEditor(*this);
+    return new EQAudioProcessorEditor (*this);
+    //return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -240,12 +183,22 @@ void EQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    juce::MemoryOutputStream memory_out_stream(destData, true);
+    apvts.state.writeToStream(memory_out_stream);
+
 }
 
 void EQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    auto valTree = juce::ValueTree::readFromData(data, sizeInBytes);
+    if (valTree.isValid())
+    {
+        apvts.replaceState(valTree);
+        updateAllfilterParams();
+    }
+
 }
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
@@ -308,7 +261,7 @@ void EQAudioProcessor::updateHiCutFilter(const ChainSettings& chainSettings)
     updateCutFilter(rightHiCut, hiCutCoeffs, chainSettings.hiCutSlope);
 }
 
-void EQAudioProcessor::updateAllfilters()
+void EQAudioProcessor::updateAllfilterParams()
 {
     auto chainSettings = getChainSettings(apvts);
     updateLowCutFilter(chainSettings);
@@ -320,6 +273,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createPara
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     
+    juce::StringArray stringArr;
+    for (int i = 0; i < 4; ++i) {
+        juce::String str;
+        str << (12 + 12 * i);
+        str << "db/Octave";
+        stringArr.add(str);
+    }
+
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCutSlope", "LowCutSlope", stringArr, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HiCutSlope", "HiCutSlope", stringArr, 0));
+
     layout.add(std::make_unique<juce::AudioParameterFloat>("LowCutFreq", 
                                                            "LowCutFreq", 
                                                            juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f),
@@ -344,17 +308,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createPara
                                                            "PeakQual", 
                                                            juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f),
                                                            1.f));
-
-    juce::StringArray stringArr;
-    for (int i = 0; i < 4; ++i) {
-        juce::String str;
-        str << (12 + 12 * i);
-        str << "db/Octave";
-        stringArr.add(str);
-    }
-
-    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCutSlope", "LowCutSlope", stringArr, 0));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("HiCutSlope", "HiCutSlope", stringArr, 0));
 
 
     return layout;
