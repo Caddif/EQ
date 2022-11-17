@@ -6,23 +6,32 @@
 
 #pragma once
 
+#include "Params.h"
 #include <JuceHeader.h>
 
-enum Slope
-{
-    Slope12,
-    Slope24,
-    Slope36,
-    Slope48
-};
-
-struct ChainSettings{
-    float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
-    float lowCutFreq{ 0 }, hiCutFreq{ 0 };
-    Slope lowCutSlope{ Slope::Slope12 }, hiCutSlope{ Slope::Slope12 };
-};
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+using Filter = juce::dsp::IIR::Filter<float>;
+using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
 
+void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements);
+Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
+
+inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
+{
+    return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
+        chainSettings.lowCutFreq,
+        sampleRate,
+        2 * (chainSettings.lowCutSlope + 1));
+}
+
+inline auto makeHiCutFilter(const ChainSettings& chainSettings, double sampleRate)
+{
+    return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
+        chainSettings.hiCutFreq,
+        sampleRate,
+        2 * (chainSettings.hiCutSlope + 1));
+}
 //==============================================================================
 /**
 */
@@ -73,61 +82,11 @@ public:
     juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout() };
 
 private:
-
-    using Filter = juce::dsp::IIR::Filter<float>;
-    using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-    using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
-
     MonoChain leftChain, rightChain;
-    enum Chainpositons
-    {
-        LowCut,
-        Peak,
-        HiCut
-    };
 
     void updatePeakFilter(const ChainSettings& ChainSettings);
-    using Coefficients = Filter::CoefficientsPtr;
-    static void updateCoeffs(Coefficients& old, const Coefficients& replacements);
 
-    template<int Id, typename Chaintype, typename CoefficientType>
-    void update(Chaintype& chain, const CoefficientType& coefficeints)
-    {
-        updateCoeffs(chain.template get<Id>().coefficients, coefficeints[Id]);
-        chain.template setBypassed<Id>(false);
-    }
-
-    template<typename ChainType, typename CoefficientType>
-    void updateCutFilter(ChainType& chain, const CoefficientType& cutCoeffs, const Slope& lowCutSlope)
-    {
-        chain.template setBypassed<0>(true);
-        chain.template setBypassed<1>(true);
-        chain.template setBypassed<2>(true);
-        chain.template setBypassed<3>(true);
-
-        switch (lowCutSlope)
-        {
-        case Slope48:
-        {
-            update<3>(chain, cutCoeffs);
-        }
-        case Slope36:
-        {
-            update<2>(chain, cutCoeffs);
-        }
-        case Slope24:
-        {
-            update<1>(chain, cutCoeffs);
-        }
-        case Slope12:
-        {
-            update<0>(chain, cutCoeffs);
-        } 
-        }
-
-    }
-
-    void updateLowCutFilter( const ChainSettings& chainSettings);
+    void updateLowCutFilter(const ChainSettings& chainSettings);
     void updateHiCutFilter(const ChainSettings& chainSettings);
     void updateAllfilterParams();
 

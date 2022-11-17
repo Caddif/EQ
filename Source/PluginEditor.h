@@ -5,22 +5,29 @@
 */
 #pragma once
 
+#include "Params.h"
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
 struct CustomSlider : juce::Slider
 {
-    CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox)
-    {
-        
-    }
+    CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) {}
 };
 
-class EQAudioProcessorEditor  : public juce::AudioProcessorEditor
+class EQAudioProcessorEditor  : 
+    public juce::AudioProcessorEditor, 
+    juce::AudioProcessorParameter::Listener,
+    juce::Timer
 {
 public:
     EQAudioProcessorEditor (EQAudioProcessor&);
     ~EQAudioProcessorEditor() override;
+
+    void parameterValueChanged(int parameterIndex, float newValue) override;
+
+    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {} 
+
+    void timerCallback() override;
 
     //==============================================================================
     void paint (juce::Graphics&) override;
@@ -31,9 +38,29 @@ private:
     // access the processor object that created it.
     EQAudioProcessor& audioProcessor;
 
+    juce::Atomic<bool> parametersChange{ false };
 
-    CustomSlider peakFreqSlider, peakGainSlider, peakQualSlider, lowCutFreqSlider, hiCutFreqSlider;
+    CustomSlider
+        peakFreqSlider,
+        peakGainSlider, 
+        peakQualSlider, 
+        lowCutFreqSlider, 
+        hiCutFreqSlider, 
+        lowCutSlopeSlider, 
+        hiCutSlopeSlider;
+
+    juce::AudioProcessorValueTreeState::SliderAttachment
+        peakFreqSliderAtt,
+        peakGainSliderAtt,
+        peakQualSliderAtt,
+        lowCutFreqSliderAtt,
+        hiCutFreqSliderAtt,
+        lowCutSlopeSliderAtt,
+        hiCutSlopeSliderAtt;
+    
     std::vector<juce::Component*> getComponents();
+
+    MonoChain monochian;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessorEditor)
 };

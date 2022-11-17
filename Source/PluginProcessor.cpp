@@ -216,29 +216,31 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     return settings;
 }
 
-void EQAudioProcessor::updatePeakFilter(const ChainSettings &chainSettings)
+Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
 {
-    auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        getSampleRate(),
+    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        sampleRate,
         chainSettings.peakFreq,
         chainSettings.peakQuality,
         juce::Decibels::decibelsToGain(chainSettings.peakGainInDb));
+}
+
+void EQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
+{
+    auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
 
     updateCoeffs(leftChain.get<Chainpositons::Peak>().coefficients, peakCoefficients);
     updateCoeffs(rightChain.get<Chainpositons::Peak>().coefficients, peakCoefficients);
 }
 
-void EQAudioProcessor::updateCoeffs(Coefficients& old, const Coefficients& replacements)
+void updateCoeffs(Filter::CoefficientsPtr & old, const Filter::CoefficientsPtr & replacements)
 {
     *old = *replacements;
 }
 
 void EQAudioProcessor::updateLowCutFilter(const ChainSettings& chainSettings)
 {
-    auto lowCutCoeffs = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
-        chainSettings.lowCutFreq,
-        getSampleRate(),
-        2 * (chainSettings.lowCutSlope + 1));
+    auto lowCutCoeffs = makeLowCutFilter(chainSettings, getSampleRate());
 
     auto& leftLowCut = leftChain.get<Chainpositons::LowCut>();
     auto& rightLowCut = rightChain.get<Chainpositons::LowCut>();
@@ -249,13 +251,10 @@ void EQAudioProcessor::updateLowCutFilter(const ChainSettings& chainSettings)
 
 void EQAudioProcessor::updateHiCutFilter(const ChainSettings& chainSettings)
 {
-    auto hiCutCoeffs = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
-        chainSettings.hiCutFreq,
-        getSampleRate(),
-        2 * (chainSettings.hiCutSlope + 1));
+    auto hiCutCoeffs = makeHiCutFilter(chainSettings, getSampleRate());
 
-    auto& leftHiCut = leftChain.get<Chainpositons::LowCut>();
-    auto& rightHiCut = rightChain.get<Chainpositons::LowCut>();
+    auto& leftHiCut = leftChain.get<Chainpositons::HiCut>();
+    auto& rightHiCut = rightChain.get<Chainpositons::HiCut>();
 
     updateCutFilter(leftHiCut, hiCutCoeffs, chainSettings.hiCutSlope);
     updateCutFilter(rightHiCut, hiCutCoeffs, chainSettings.hiCutSlope);
@@ -264,6 +263,7 @@ void EQAudioProcessor::updateHiCutFilter(const ChainSettings& chainSettings)
 void EQAudioProcessor::updateAllfilterParams()
 {
     auto chainSettings = getChainSettings(apvts);
+
     updateLowCutFilter(chainSettings);
     updatePeakFilter(chainSettings);
     updateHiCutFilter(chainSettings);
