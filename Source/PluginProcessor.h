@@ -17,6 +17,8 @@ using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
 void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements);
 Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
+
+
 inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
 {
     return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
