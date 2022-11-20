@@ -95,7 +95,7 @@ void EQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     // initialisation that you need..
     juce::dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = 1;
+    spec.numChannels = getTotalNumOutputChannels();
     spec.sampleRate = sampleRate;
 
     leftChain.prepare(spec);
@@ -151,6 +151,7 @@ void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    // You must update parameters before processing audio
     updateAllfilterParams();
 
     juce::dsp::AudioBlock<float> block(buffer);
@@ -201,28 +202,11 @@ void EQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 }
 
-ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
+void EQAudioProcessor::bypassLowCut()
 {
-    ChainSettings settings;
-
-    settings.lowCutFreq = apvts.getRawParameterValue("LowCutFreq")->load();
-    settings.hiCutFreq = apvts.getRawParameterValue("HiCutFreq")->load();
-    settings.peakFreq = apvts.getRawParameterValue("PeakFreq")->load();
-    settings.peakGainInDb = apvts.getRawParameterValue("PeakGain")->load();
-    settings.peakQuality = apvts.getRawParameterValue("PeakQual")->load();
-    settings.lowCutSlope = static_cast<Slope>(apvts.getRawParameterValue("LowCutSlope")->load());
-    settings.hiCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HiCutSlope")->load());
-
-    return settings;
-}
-
-Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
-{
-    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        sampleRate,
-        chainSettings.peakFreq,
-        chainSettings.peakQuality,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb));
+    // just testing
+    leftChain.setBypassed<LowCut>(true);
+    rightChain.setBypassed<LowCut>(true);
 }
 
 void EQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
@@ -241,6 +225,7 @@ void updateCoeffs(Filter::CoefficientsPtr & old, const Filter::CoefficientsPtr &
 void EQAudioProcessor::updateLowCutFilter(const ChainSettings& chainSettings)
 {
     auto lowCutCoeffs = makeLowCutFilter(chainSettings, getSampleRate());
+    //bypassLowCut();
 
     auto& leftLowCut = leftChain.get<Chainpositons::LowCut>();
     auto& rightLowCut = rightChain.get<Chainpositons::LowCut>();
@@ -311,6 +296,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createPara
 
 
     return layout;
+}
+
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
+{
+    ChainSettings settings;
+
+    settings.lowCutFreq = apvts.getRawParameterValue("LowCutFreq")->load();
+    settings.hiCutFreq = apvts.getRawParameterValue("HiCutFreq")->load();
+    settings.peakFreq = apvts.getRawParameterValue("PeakFreq")->load();
+    settings.peakGainInDb = apvts.getRawParameterValue("PeakGain")->load();
+    settings.peakQuality = apvts.getRawParameterValue("PeakQual")->load();
+    settings.lowCutSlope = static_cast<Slope>(apvts.getRawParameterValue("LowCutSlope")->load());
+    settings.hiCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HiCutSlope")->load());
+
+    return settings;
+}
+
+Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
+{
+    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+        sampleRate,
+        chainSettings.peakFreq,
+        chainSettings.peakQuality,
+        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb));
 }
 
 //==============================================================================

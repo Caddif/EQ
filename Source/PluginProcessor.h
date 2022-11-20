@@ -18,7 +18,6 @@ void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& r
 Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
 
-
 inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
 {
     return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
@@ -86,8 +85,9 @@ public:
 private:
     MonoChain leftChain, rightChain;
 
-    void updatePeakFilter(const ChainSettings& ChainSettings);
+    void bypassLowCut();
 
+    void updatePeakFilter(const ChainSettings& ChainSettings);
     void updateLowCutFilter(const ChainSettings& chainSettings);
     void updateHiCutFilter(const ChainSettings& chainSettings);
     void updateAllfilterParams();

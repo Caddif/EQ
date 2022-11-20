@@ -5,6 +5,7 @@
               cppLanguageStandard="17" companyName="MyCompEQ">
   <MAINGROUP id="aU7Zo2" name="EQ">
     <GROUP id="{732BA4F1-784C-EA95-A1AB-67C9666C0C56}" name="Source">
+      <FILE id="tkVNlB" name="ResponseCurve.h" compile="0" resource="0" file="Source/ResponseCurve.h"/>
       <FILE id="LFjHgK" name="Params.h" compile="0" resource="0" file="Source/Params.h"/>
       <FILE id="h54Xdw" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>

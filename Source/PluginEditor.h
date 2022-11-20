@@ -6,30 +6,13 @@
 #pragma once
 
 #include "Params.h"
+#include "ResponseCurve.h"
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
 struct CustomSlider : juce::Slider
 {
     CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) {}
-};
-
-struct ResponseCurveComp :
-    juce::Component,
-    juce::AudioProcessorParameter::Listener,
-    juce::Timer
-{
-    ResponseCurveComp(EQAudioProcessor&);
-    ~ResponseCurveComp();
-
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {}
-    void timerCallback() override;
-    void paint(juce::Graphics& g) override;
-private:
-    EQAudioProcessor& audioProcessor;
-    juce::Atomic<bool> parametersChange{ false };
-    MonoChain monochain;
 };
 
 class EQAudioProcessorEditor  : 
@@ -42,6 +25,7 @@ public:
     //==============================================================================
     //void paint (juce::Graphics&) override;
     void resized() override;
+    void EQAudioProcessorEditor::paint(juce::Graphics& g);
 
 private:
     // This reference is provided as a quick way for your editor to
@@ -58,13 +42,13 @@ private:
         hiCutSlopeSlider;
 
     juce::AudioProcessorValueTreeState::SliderAttachment
-        peakFreqSliderAtt,
-        peakGainSliderAtt,
-        peakQualSliderAtt,
-        lowCutFreqSliderAtt,
-        hiCutFreqSliderAtt,
-        lowCutSlopeSliderAtt,
-        hiCutSlopeSliderAtt;
+        peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
+        peakGainSliderAtt{ audioProcessor.apvts, "PeakGain", peakGainSlider },
+        peakQualSliderAtt{ audioProcessor.apvts, "PeakQual", peakQualSlider },
+        lowCutFreqSliderAtt{ audioProcessor.apvts, "LowCutFreq", lowCutFreqSlider },
+        hiCutFreqSliderAtt{ audioProcessor.apvts, "HiCutFreq", hiCutFreqSlider },
+        lowCutSlopeSliderAtt{ audioProcessor.apvts, "LowCutSlope", lowCutSlopeSlider },
+        hiCutSlopeSliderAtt{ audioProcessor.apvts, "HiCutSlope", hiCutSlopeSlider };
     
     ResponseCurveComp responseCurveComp;
     std::vector<juce::Component*> getComponents();
