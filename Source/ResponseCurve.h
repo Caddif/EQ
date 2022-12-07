@@ -3,7 +3,7 @@
 
     ResponseCurve.h
     Created: 17 Nov 2022 3:10:09am
-    Author:  user
+    Author:  Filip Tomeczek
 
   ==============================================================================
 */
@@ -24,7 +24,7 @@ struct ResponseCurveComp :
     inline void paint(juce::Graphics& g) override;
 private:
     EQAudioProcessor& audioProcessor;
-    juce::Atomic<bool> parametersChange{ false };
+    juce::Atomic<bool> parametersChange{ true };
     MonoChain monochain;
 };
 
@@ -61,11 +61,11 @@ void ResponseCurveComp::timerCallback()
         auto peakCoeffs = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
         updateCoeffs(monochain.get<Chainpositons::Peak>().coefficients, peakCoeffs);
 
-        auto lowCutCoeffs = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
-        auto hiCutCoeffs = makeHiCutFilter(chainSettings, audioProcessor.getSampleRate());
+        auto lowCutCoeffs = makeHiPassFilter(chainSettings, audioProcessor.getSampleRate());
+        auto hiCutCoeffs = makeLowPassFilter(chainSettings, audioProcessor.getSampleRate());
 
-        updateCutFilter(monochain.get<Chainpositons::LowCut>(), lowCutCoeffs, chainSettings.lowCutSlope);
-        updateCutFilter(monochain.get<Chainpositons::HiCut>(), hiCutCoeffs, chainSettings.hiCutSlope);
+        updateCutFilter(monochain.get<Chainpositons::HiPass>(), lowCutCoeffs, chainSettings.HiPassSlope);
+        updateCutFilter(monochain.get<Chainpositons::LowPass>(), hiCutCoeffs, chainSettings.lowPassSlope);
 
         repaint();
     }
@@ -80,9 +80,9 @@ void ResponseCurveComp::paint(juce::Graphics& g)
     auto responseGraphArea = getLocalBounds(); //bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.5));
     int graphWidth = responseGraphArea.getWidth();
 
-    auto& lowCut = monochain.get<Chainpositons::LowCut>();
+    auto& lowCut = monochain.get<Chainpositons::HiPass>();
     auto& peak = monochain.get<Chainpositons::Peak>();
-    auto& hiCut = monochain.get<Chainpositons::HiCut>();
+    auto& hiCut = monochain.get<Chainpositons::LowPass>();
 
     auto sampleRate = audioProcessor.getSampleRate();
     std::vector<double> magnitudes;
@@ -136,5 +136,5 @@ void ResponseCurveComp::paint(juce::Graphics& g)
     g.drawRoundedRectangle(responseGraphArea.toFloat(), 5.f, 1.f);
 
     g.setColour(juce::Colours::white);
-    g.strokePath(responseCurve, juce::PathStrokeType(2.f));
+    g.strokePath(responseCurve, juce::PathStrokeType(1.5f));
 }

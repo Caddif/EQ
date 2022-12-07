@@ -18,20 +18,20 @@ void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& r
 Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 
 
-inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
+inline auto makeHiPassFilter(const ChainSettings& chainSettings, double sampleRate)
 {
     return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
-        chainSettings.lowCutFreq,
+        chainSettings.HiPassFreq,
         sampleRate,
-        2 * (chainSettings.lowCutSlope + 1));
+        2 * (chainSettings.HiPassSlope + 1));
 }
 
-inline auto makeHiCutFilter(const ChainSettings& chainSettings, double sampleRate)
+inline auto makeLowPassFilter(const ChainSettings& chainSettings, double sampleRate)
 {
     return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
-        chainSettings.hiCutFreq,
+        chainSettings.lowPassFreq,
         sampleRate,
-        2 * (chainSettings.hiCutSlope + 1));
+        2 * (chainSettings.lowPassSlope + 1));
 }
 //==============================================================================
 /**

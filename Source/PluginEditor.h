@@ -36,19 +36,19 @@ private:
         peakFreqSlider,
         peakGainSlider, 
         peakQualSlider, 
-        lowCutFreqSlider, 
-        hiCutFreqSlider, 
-        lowCutSlopeSlider, 
-        hiCutSlopeSlider;
+        hiPassFreqSlider, 
+        lowPassFreqSlider, 
+        hiPassSlopeSlider, 
+        lowPassSlopeSlider;
 
     juce::AudioProcessorValueTreeState::SliderAttachment
         peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
         peakGainSliderAtt{ audioProcessor.apvts, "PeakGain", peakGainSlider },
         peakQualSliderAtt{ audioProcessor.apvts, "PeakQual", peakQualSlider },
-        lowCutFreqSliderAtt{ audioProcessor.apvts, "LowCutFreq", lowCutFreqSlider },
-        hiCutFreqSliderAtt{ audioProcessor.apvts, "HiCutFreq", hiCutFreqSlider },
-        lowCutSlopeSliderAtt{ audioProcessor.apvts, "LowCutSlope", lowCutSlopeSlider },
-        hiCutSlopeSliderAtt{ audioProcessor.apvts, "HiCutSlope", hiCutSlopeSlider };
+        lowCutFreqSliderAtt{ audioProcessor.apvts, "HiPassFreq", hiPassFreqSlider },
+        hiCutFreqSliderAtt{ audioProcessor.apvts, "LowPassFreq", lowPassFreqSlider },
+        lowCutSlopeSliderAtt{ audioProcessor.apvts, "HiPassSlope", hiPassSlopeSlider },
+        hiCutSlopeSliderAtt{ audioProcessor.apvts, "LowPassSlope", lowPassSlopeSlider };
     
     ResponseCurveComp responseCurveComp;
     std::vector<juce::Component*> getComponents();

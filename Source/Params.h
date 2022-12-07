@@ -2,8 +2,8 @@
   ==============================================================================
 
     Params.h
-    Created: 16 Nov 2022 6:59:54pm
-    Author:  user
+    Created: 2 Nov 2022 6:59:54pm
+    Author:  Filip Tomeczek
 
   ==============================================================================
 */
@@ -20,15 +20,17 @@ enum Slope
 
 struct ChainSettings {
     float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
-    float lowCutFreq{ 0 }, hiCutFreq{ 0 };
-    Slope lowCutSlope{ Slope::Slope12 }, hiCutSlope{ Slope::Slope12 };
+    //float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
+    //float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
+    float HiPassFreq{ 0 }, lowPassFreq{ 0 };
+    Slope HiPassSlope{ Slope::Slope12 }, lowPassSlope{ Slope::Slope12 };
 };
 
 enum Chainpositons
 {
-    LowCut,
+    HiPass,
     Peak,
-    HiCut
+    LowPass
 };
 
 template<int Id, typename Chaintype, typename CoefficientType>
