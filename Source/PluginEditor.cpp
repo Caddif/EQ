@@ -32,19 +32,31 @@ void EQAudioProcessorEditor::resized()
     // subcomponents in your editor..
     auto bounds = getLocalBounds();
     auto responseGraphArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.6));
-    auto lowCutArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
-    auto hiCutArea = bounds.removeFromRight(static_cast<int>(bounds.getWidth() * 0.50));
+    auto hiPassArea = bounds.removeFromBottom(static_cast<int>(bounds.getWidth() * 0.33));
+    auto lowPassArea = hiPassArea.removeFromRight(static_cast<int>(hiPassArea.getWidth() * 0.50));
+    auto peakArea= bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.33));
+    auto peak2Area = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.50));
+    auto peak3Area = bounds;
 
+    responseGraphArea.reduce(10, 10);
     responseCurveComp.setBounds(responseGraphArea);
 
-    hiPassFreqSlider.setBounds(lowCutArea.removeFromTop(static_cast<int>(bounds.getHeight() * 0.50)));
-    hiPassSlopeSlider.setBounds(lowCutArea);
-    lowPassFreqSlider.setBounds(hiCutArea.removeFromTop(static_cast<int>(bounds.getHeight() * 0.50)));
-    lowPassSlopeSlider.setBounds(hiCutArea);
+    hiPassFreqSlider.setBounds(hiPassArea.removeFromLeft(static_cast<int>(hiPassArea.getWidth() * 0.50)));
+    hiPassSlopeSlider.setBounds(hiPassArea);
+    lowPassFreqSlider.setBounds(lowPassArea.removeFromLeft(static_cast<int>(lowPassArea.getWidth() * 0.50)));
+    lowPassSlopeSlider.setBounds(lowPassArea);
 
-    peakFreqSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.33)));
-    peakGainSlider.setBounds(bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.50)));
-    peakQualSlider.setBounds(bounds);
+    peakFreqSlider.setBounds(peakArea.removeFromTop(static_cast<int>(peakArea.getHeight() * 0.33)));
+    peakGainSlider.setBounds(peakArea.removeFromTop(static_cast<int>(peakArea.getHeight() * 0.5)));
+    peakQualSlider.setBounds(peakArea);
+
+    peakFreqSlider2.setBounds(peak2Area.removeFromTop(static_cast<int>(peak2Area.getHeight() * 0.33)));
+    peakGainSlider2.setBounds(peak2Area.removeFromTop(static_cast<int>(peak2Area.getHeight() * 0.5)));
+    peakQualSlider2.setBounds(peak2Area);
+    
+    peakFreqSlider3.setBounds(peak3Area.removeFromTop(static_cast<int>(peak3Area.getHeight() * 0.33)));
+    peakGainSlider3.setBounds(peak3Area.removeFromTop(static_cast<int>(peak3Area.getHeight() * 0.5)));
+    peakQualSlider3.setBounds(peak3Area);
 
 }
 
@@ -61,6 +73,12 @@ std::vector<juce::Component*> EQAudioProcessorEditor::getComponents()
         &peakFreqSlider,
         &peakGainSlider,
         &peakQualSlider,
+        &peakFreqSlider2,
+        &peakGainSlider2,
+        &peakQualSlider2,
+        &peakFreqSlider3,
+        &peakGainSlider3,
+        &peakQualSlider3,
         &hiPassFreqSlider,
         &lowPassFreqSlider,
         &hiPassSlopeSlider,

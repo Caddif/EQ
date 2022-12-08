@@ -20,8 +20,8 @@ enum Slope
 
 struct ChainSettings {
     float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
-    //float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
-    //float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
+    float peakFreq2{ 0 }, peakGainInDb2{ 0 }, peakQuality2{ 1.f };
+    float peakFreq3{ 0 }, peakGainInDb3{ 0 }, peakQuality3{ 1.f };
     float HiPassFreq{ 0 }, lowPassFreq{ 0 };
     Slope HiPassSlope{ Slope::Slope12 }, lowPassSlope{ Slope::Slope12 };
 };
@@ -30,6 +30,8 @@ enum Chainpositons
 {
     HiPass,
     Peak,
+    Peak2,
+    Peak3,
     LowPass
 };
 
@@ -41,14 +43,14 @@ void update(Chaintype& chain, const CoefficientType& coefficeints)
 }
 
 template<typename ChainType, typename CoefficientType>
-void updateCutFilter(ChainType& chain, const CoefficientType& cutCoeffs, const Slope& lowCutSlope)
+void updateCutFilter(ChainType& chain, const CoefficientType& cutCoeffs, const Slope& passSlope)
 {
     chain.template setBypassed<0>(true);
     chain.template setBypassed<1>(true);
     chain.template setBypassed<2>(true);
     chain.template setBypassed<3>(true);
 
-    switch (lowCutSlope)
+    switch (passSlope)
     {
     case Slope48:
     {

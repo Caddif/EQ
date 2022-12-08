@@ -12,10 +12,12 @@
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 using Filter = juce::dsp::IIR::Filter<float>;
 using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, Filter, Filter, CutFilter>;
 
 void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements);
 Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
+Filter::CoefficientsPtr makePeakFilter2(const ChainSettings& chainSettings, double sampleRate);
+Filter::CoefficientsPtr makePeakFilter3(const ChainSettings& chainSettings, double sampleRate);
 
 
 inline auto makeHiPassFilter(const ChainSettings& chainSettings, double sampleRate)
@@ -87,7 +89,7 @@ private:
 
     void bypassLowCut();
 
-    void updatePeakFilter(const ChainSettings& ChainSettings);
+    void updatePeakFilters(const ChainSettings& ChainSettings);
     void updateLowCutFilter(const ChainSettings& chainSettings);
     void updateHiCutFilter(const ChainSettings& chainSettings);
     void updateAllfilterParams();
