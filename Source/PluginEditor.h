@@ -12,7 +12,11 @@
 
 struct CustomSlider : juce::Slider
 {
-    CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) {}
+    CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) 
+    {
+        juce::Slider::setColour(ColourIds::thumbColourId, juce::Colours::silver);
+        juce::Slider::setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.4f));
+    }
 };
 
 class EQAudioProcessorEditor  : 
@@ -45,7 +49,8 @@ private:
         hiPassFreqSlider, 
         lowPassFreqSlider, 
         hiPassSlopeSlider, 
-        lowPassSlopeSlider;
+        lowPassSlopeSlider,
+        totalGainSlider;
 
     juce::AudioProcessorValueTreeState::SliderAttachment
         peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
@@ -60,7 +65,8 @@ private:
         lowCutFreqSliderAtt{ audioProcessor.apvts, "HiPassFreq", hiPassFreqSlider },
         hiCutFreqSliderAtt{ audioProcessor.apvts, "LowPassFreq", lowPassFreqSlider },
         lowCutSlopeSliderAtt{ audioProcessor.apvts, "HiPassSlope", hiPassSlopeSlider },
-        hiCutSlopeSliderAtt{ audioProcessor.apvts, "LowPassSlope", lowPassSlopeSlider };
+        hiCutSlopeSliderAtt{ audioProcessor.apvts, "LowPassSlope", lowPassSlopeSlider },
+        totalGainAtt{ audioProcessor.apvts, "TotalGain", totalGainSlider };
     
     ResponseCurveComp responseCurveComp;
     std::vector<juce::Component*> getComponents();

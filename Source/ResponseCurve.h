@@ -22,6 +22,7 @@ struct ResponseCurveComp :
     inline void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {}
     inline void timerCallback() override;
     inline void paint(juce::Graphics& g) override;
+
 private:
     EQAudioProcessor& audioProcessor;
     juce::Atomic<bool> parametersChange{ true };
@@ -58,9 +59,11 @@ void ResponseCurveComp::timerCallback()
     if (parametersChange.compareAndSetBool(false, true))
     {
         auto chainSettings = getChainSettings(audioProcessor.apvts);
+
         auto peakCoeffs = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
         auto peakCoeffs2 = makePeakFilter2(chainSettings, audioProcessor.getSampleRate());
         auto peakCoeffs3 = makePeakFilter3(chainSettings, audioProcessor.getSampleRate());
+
         updateCoeffs(monochain.get<Chainpositons::Peak>().coefficients, peakCoeffs);
         updateCoeffs(monochain.get<Chainpositons::Peak2>().coefficients, peakCoeffs2);
         updateCoeffs(monochain.get<Chainpositons::Peak3>().coefficients, peakCoeffs3);
@@ -70,6 +73,8 @@ void ResponseCurveComp::timerCallback()
 
         updateCutFilter(monochain.get<Chainpositons::HiPass>(), lowCutCoeffs, chainSettings.HiPassSlope);
         updateCutFilter(monochain.get<Chainpositons::LowPass>(), hiCutCoeffs, chainSettings.lowPassSlope);
+
+        monochain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
 
         repaint();
     }
@@ -90,6 +95,7 @@ void ResponseCurveComp::paint(juce::Graphics& g)
     auto& peak2 = monochain.get<Chainpositons::Peak2>();
     auto& peak3 = monochain.get<Chainpositons::Peak3>();
     auto& lowPass = monochain.get<Chainpositons::LowPass>();
+    auto& totalGain = monochain.get<Chainpositons::Gain>();
 
     auto sampleRate = audioProcessor.getSampleRate();
     std::vector<double> magnitudes;
@@ -100,15 +106,6 @@ void ResponseCurveComp::paint(juce::Graphics& g)
         double mag = 1.f;
         auto freq = juce::mapToLog10(double(i) / double(graphWidth), 20.0, 20000.0);
 
-        if (!monochain.isBypassed<Chainpositons::Peak>())
-            mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
-        if (!monochain.isBypassed<Chainpositons::Peak2>())
-            mag *= peak2.coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
-        if (!monochain.isBypassed<Chainpositons::Peak3>())
-            mag *= peak3.coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
         if (!hiPass.isBypassed<0>())
             mag *= hiPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         if (!hiPass.isBypassed<1>())
@@ -117,6 +114,15 @@ void ResponseCurveComp::paint(juce::Graphics& g)
             mag *= hiPass.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         if (!hiPass.isBypassed<3>())
             mag *= hiPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+        if (!monochain.isBypassed<Chainpositons::Peak>())
+            mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+        if (!monochain.isBypassed<Chainpositons::Peak2>())
+            mag *= peak2.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+        if (!monochain.isBypassed<Chainpositons::Peak3>())
+            mag *= peak3.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
         if (!lowPass.isBypassed<0>())
             mag *= lowPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
@@ -127,8 +133,9 @@ void ResponseCurveComp::paint(juce::Graphics& g)
         if (!lowPass.isBypassed<3>())
             mag *= lowPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        magnitudes[i] = juce::Decibels::gainToDecibels(mag);
+        magnitudes[i] = juce::Decibels::gainToDecibels(mag) + totalGain.getGainDecibels();
     }
+
     juce::Path responseCurve;
     const double maxOut = responseGraphArea.getY();
     const double minOut = responseGraphArea.getBottom();

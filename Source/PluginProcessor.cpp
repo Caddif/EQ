@@ -101,6 +101,9 @@ void EQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     leftChain.prepare(spec);
     rightChain.prepare(spec);
 
+    leftChain.get<Chainpositons::Gain>().setRampDurationSeconds(0.02);
+    rightChain.get<Chainpositons::Gain>().setRampDurationSeconds(0.02);
+
     updateAllfilterParams();
 }
 
@@ -209,6 +212,12 @@ void EQAudioProcessor::bypassLowCut()
     rightChain.setBypassed<HiPass>(true);
 }
 
+void EQAudioProcessor::updateTotalGain(const ChainSettings& chainSettings)
+{
+    leftChain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
+    rightChain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
+}
+
 void EQAudioProcessor::updatePeakFilters(const ChainSettings& chainSettings)
 {
     auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
@@ -230,25 +239,25 @@ void updateCoeffs(Filter::CoefficientsPtr & old, const Filter::CoefficientsPtr &
 
 void EQAudioProcessor::updateLowCutFilter(const ChainSettings& chainSettings)
 {
-    auto lowCutCoeffs = makeHiPassFilter(chainSettings, getSampleRate());
+    auto hiPassCoeffs = makeHiPassFilter(chainSettings, getSampleRate());
     //bypassLowCut();
 
     auto& leftLowCut = leftChain.get<Chainpositons::HiPass>();
     auto& rightLowCut = rightChain.get<Chainpositons::HiPass>();
 
-    updateCutFilter(leftLowCut, lowCutCoeffs, chainSettings.HiPassSlope);
-    updateCutFilter(rightLowCut, lowCutCoeffs, chainSettings.HiPassSlope);
+    updateCutFilter(leftLowCut, hiPassCoeffs, chainSettings.HiPassSlope);
+    updateCutFilter(rightLowCut, hiPassCoeffs, chainSettings.HiPassSlope);
 }
 
 void EQAudioProcessor::updateHiCutFilter(const ChainSettings& chainSettings)
 {
-    auto hiCutCoeffs = makeLowPassFilter(chainSettings, getSampleRate());
+    auto lowPassCoeffs = makeLowPassFilter(chainSettings, getSampleRate());
 
     auto& leftHiCut = leftChain.get<Chainpositons::LowPass>();
     auto& rightHiCut = rightChain.get<Chainpositons::LowPass>();
 
-    updateCutFilter(leftHiCut, hiCutCoeffs, chainSettings.lowPassSlope);
-    updateCutFilter(rightHiCut, hiCutCoeffs, chainSettings.lowPassSlope);
+    updateCutFilter(leftHiCut, lowPassCoeffs, chainSettings.lowPassSlope);
+    updateCutFilter(rightHiCut, lowPassCoeffs, chainSettings.lowPassSlope);
 }
 
 void EQAudioProcessor::updateAllfilterParams()
@@ -258,6 +267,7 @@ void EQAudioProcessor::updateAllfilterParams()
     updateLowCutFilter(chainSettings);
     updatePeakFilters(chainSettings);
     updateHiCutFilter(chainSettings);
+    updateTotalGain(chainSettings);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createParameterLayout()
@@ -330,6 +340,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createPara
                                                            juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f),
                                                            1.f));
 
+    layout.add(std::make_unique<juce::AudioParameterFloat>("TotalGain",
+                                                           "TotalGain",
+                                                           juce::NormalisableRange<float>(-24.f, 24.f, 0.1f, 1.f),
+                                                           0.f));
+
     return layout;
 }
 
@@ -350,6 +365,7 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     settings.peakQuality3 = apvts.getRawParameterValue("PeakQual3")->load();
     settings.HiPassSlope = static_cast<Slope>(apvts.getRawParameterValue("HiPassSlope")->load());
     settings.lowPassSlope = static_cast<Slope>(apvts.getRawParameterValue("LowPassSlope")->load());
+    settings.totalGain = apvts.getRawParameterValue("TotalGain")->load();
 
     return settings;
 }

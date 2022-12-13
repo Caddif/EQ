@@ -19,11 +19,12 @@ enum Slope
 };
 
 struct ChainSettings {
+    float HiPassFreq{ 0 }, lowPassFreq{ 0 };
     float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
     float peakFreq2{ 0 }, peakGainInDb2{ 0 }, peakQuality2{ 1.f };
     float peakFreq3{ 0 }, peakGainInDb3{ 0 }, peakQuality3{ 1.f };
-    float HiPassFreq{ 0 }, lowPassFreq{ 0 };
     Slope HiPassSlope{ Slope::Slope12 }, lowPassSlope{ Slope::Slope12 };
+    float totalGain{ 0 };
 };
 
 enum Chainpositons
@@ -32,7 +33,8 @@ enum Chainpositons
     Peak,
     Peak2,
     Peak3,
-    LowPass
+    LowPass,
+    Gain
 };
 
 template<int Id, typename Chaintype, typename CoefficientType>

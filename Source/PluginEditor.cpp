@@ -41,8 +41,11 @@ void EQAudioProcessorEditor::resized()
     responseGraphArea.reduce(10, 10);
     responseCurveComp.setBounds(responseGraphArea);
 
-    hiPassFreqSlider.setBounds(hiPassArea.removeFromLeft(static_cast<int>(hiPassArea.getWidth() * 0.50)));
-    hiPassSlopeSlider.setBounds(hiPassArea);
+    //hiPassFreqSlider.setBounds(hiPassArea.removeFromLeft(static_cast<int>(hiPassArea.getWidth() * 0.50)));
+    //hiPassSlopeSlider.setBounds(hiPassArea);
+
+    totalGainSlider.setBounds(hiPassArea);
+
     lowPassFreqSlider.setBounds(lowPassArea.removeFromLeft(static_cast<int>(lowPassArea.getWidth() * 0.50)));
     lowPassSlopeSlider.setBounds(lowPassArea);
 
@@ -83,6 +86,7 @@ std::vector<juce::Component*> EQAudioProcessorEditor::getComponents()
         &lowPassFreqSlider,
         &hiPassSlopeSlider,
         &lowPassSlopeSlider,
+        &totalGainSlider,
         &responseCurveComp
     };
 }

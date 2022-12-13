@@ -10,11 +10,13 @@
 #include <JuceHeader.h>
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+using TotalGain = juce::dsp::Gain<float>;
 using Filter = juce::dsp::IIR::Filter<float>;
 using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, Filter, Filter, CutFilter>;
+using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, Filter, Filter, CutFilter, TotalGain>;
 
 void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements);
+
 Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 Filter::CoefficientsPtr makePeakFilter2(const ChainSettings& chainSettings, double sampleRate);
 Filter::CoefficientsPtr makePeakFilter3(const ChainSettings& chainSettings, double sampleRate);
@@ -88,6 +90,8 @@ private:
     MonoChain leftChain, rightChain;
 
     void bypassLowCut();
+
+    void updateTotalGain(const ChainSettings& chainSettings);
 
     void updatePeakFilters(const ChainSettings& ChainSettings);
     void updateLowCutFilter(const ChainSettings& chainSettings);
