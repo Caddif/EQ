@@ -15,7 +15,7 @@ struct CustomSlider : juce::Slider
     CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) 
     {
         juce::Slider::setColour(ColourIds::thumbColourId, juce::Colours::silver);
-        juce::Slider::setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.4f));
+        juce::Slider::setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.5f));
     }
 };
 
@@ -27,9 +27,8 @@ public:
     ~EQAudioProcessorEditor() override;
 
     //==============================================================================
-    //void paint (juce::Graphics&) override;
+    void paint (juce::Graphics&) override;
     void resized() override;
-    void EQAudioProcessorEditor::paint(juce::Graphics& g);
 
 private:
     // This reference is provided as a quick way for your editor to
@@ -51,7 +50,7 @@ private:
         hiPassSlopeSlider, 
         lowPassSlopeSlider,
         totalGainSlider;
-
+    
     juce::AudioProcessorValueTreeState::SliderAttachment
         peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
         peakGainSliderAtt{ audioProcessor.apvts, "PeakGain", peakGainSlider },
@@ -62,16 +61,16 @@ private:
         peakFreqSliderAtt3{ audioProcessor.apvts, "PeakFreq3", peakFreqSlider3 },
         peakGainSliderAtt3{ audioProcessor.apvts, "PeakGain3", peakGainSlider3 },
         peakQualSliderAtt3{ audioProcessor.apvts, "PeakQual3", peakQualSlider3 },
-        lowCutFreqSliderAtt{ audioProcessor.apvts, "HiPassFreq", hiPassFreqSlider },
-        hiCutFreqSliderAtt{ audioProcessor.apvts, "LowPassFreq", lowPassFreqSlider },
-        lowCutSlopeSliderAtt{ audioProcessor.apvts, "HiPassSlope", hiPassSlopeSlider },
-        hiCutSlopeSliderAtt{ audioProcessor.apvts, "LowPassSlope", lowPassSlopeSlider },
+        hiPassFreqSliderAtt{ audioProcessor.apvts, "HiPassFreq", hiPassFreqSlider },
+        lowPassFreqSliderAtt{ audioProcessor.apvts, "LowPassFreq", lowPassFreqSlider },
+        hiPassSlopeSliderAtt{ audioProcessor.apvts, "HiPassSlope", hiPassSlopeSlider },
+        lowPassSlopeSliderAtt{ audioProcessor.apvts, "LowPassSlope", lowPassSlopeSlider },
         totalGainAtt{ audioProcessor.apvts, "TotalGain", totalGainSlider };
     
     ResponseCurveComp responseCurveComp;
-    std::vector<juce::Component*> getComponents();
+    juce::ColourGradient gradient;
 
-    //MonoChain monochian;
+    std::vector<juce::Component*> getComponents();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessorEditor)
 };

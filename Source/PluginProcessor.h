@@ -10,10 +10,11 @@
 #include <JuceHeader.h>
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+
 using TotalGain = juce::dsp::Gain<float>;
 using Filter = juce::dsp::IIR::Filter<float>;
-using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, Filter, Filter, CutFilter, TotalGain>;
+using PassFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+using MonoChain = juce::dsp::ProcessorChain<PassFilter, Filter, Filter, Filter, PassFilter, TotalGain>;
 
 void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements);
 
@@ -89,14 +90,13 @@ public:
 private:
     MonoChain leftChain, rightChain;
 
-    void bypassLowCut();
-
-    void updateTotalGain(const ChainSettings& chainSettings);
+    void bypassHiPass();
 
     void updatePeakFilters(const ChainSettings& ChainSettings);
-    void updateLowCutFilter(const ChainSettings& chainSettings);
-    void updateHiCutFilter(const ChainSettings& chainSettings);
-    void updateAllfilterParams();
+    void updateHiPassFilter(const ChainSettings& chainSettings);
+    void updateLowPassFilter(const ChainSettings& chainSettings);
+    void updateTotalGain(const ChainSettings& chainSettings);
+    void updateAllParams();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessor)

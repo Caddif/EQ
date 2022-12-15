@@ -104,7 +104,7 @@ void EQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     leftChain.get<Chainpositons::Gain>().setRampDurationSeconds(0.02);
     rightChain.get<Chainpositons::Gain>().setRampDurationSeconds(0.02);
 
-    updateAllfilterParams();
+    updateAllParams();
 }
 
 void EQAudioProcessor::releaseResources()
@@ -155,7 +155,7 @@ void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
         buffer.clear (i, 0, buffer.getNumSamples());
 
     // You must update parameters before processing audio
-    updateAllfilterParams();
+    updateAllParams();
 
     juce::dsp::AudioBlock<float> block(buffer);
     auto leftBlock = block.getSingleChannelBlock(0);
@@ -200,12 +200,12 @@ void EQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
     if (valTree.isValid())
     {
         apvts.replaceState(valTree);
-        updateAllfilterParams();
+        updateAllParams();
     }
 
 }
 
-void EQAudioProcessor::bypassLowCut()
+void EQAudioProcessor::bypassHiPass()
 {
     // just testing
     leftChain.setBypassed<HiPass>(true);
@@ -237,36 +237,36 @@ void updateCoeffs(Filter::CoefficientsPtr & old, const Filter::CoefficientsPtr &
     *old = *replacements;
 }
 
-void EQAudioProcessor::updateLowCutFilter(const ChainSettings& chainSettings)
+void EQAudioProcessor::updateHiPassFilter(const ChainSettings& chainSettings)
 {
     auto hiPassCoeffs = makeHiPassFilter(chainSettings, getSampleRate());
-    //bypassLowCut();
+    //bypassHiPass();
 
-    auto& leftLowCut = leftChain.get<Chainpositons::HiPass>();
-    auto& rightLowCut = rightChain.get<Chainpositons::HiPass>();
+    auto& leftHiPass = leftChain.get<Chainpositons::HiPass>();
+    auto& rightHiPass = rightChain.get<Chainpositons::HiPass>();
 
-    updateCutFilter(leftLowCut, hiPassCoeffs, chainSettings.HiPassSlope);
-    updateCutFilter(rightLowCut, hiPassCoeffs, chainSettings.HiPassSlope);
+    updatePassFilter(leftHiPass, hiPassCoeffs, chainSettings.HiPassSlope);
+    updatePassFilter(rightHiPass, hiPassCoeffs, chainSettings.HiPassSlope);
 }
 
-void EQAudioProcessor::updateHiCutFilter(const ChainSettings& chainSettings)
+void EQAudioProcessor::updateLowPassFilter(const ChainSettings& chainSettings)
 {
     auto lowPassCoeffs = makeLowPassFilter(chainSettings, getSampleRate());
 
-    auto& leftHiCut = leftChain.get<Chainpositons::LowPass>();
-    auto& rightHiCut = rightChain.get<Chainpositons::LowPass>();
+    auto& leftLowPass = leftChain.get<Chainpositons::LowPass>();
+    auto& rightLowPass = rightChain.get<Chainpositons::LowPass>();
 
-    updateCutFilter(leftHiCut, lowPassCoeffs, chainSettings.lowPassSlope);
-    updateCutFilter(rightHiCut, lowPassCoeffs, chainSettings.lowPassSlope);
+    updatePassFilter(leftLowPass, lowPassCoeffs, chainSettings.lowPassSlope);
+    updatePassFilter(rightLowPass, lowPassCoeffs, chainSettings.lowPassSlope);
 }
 
-void EQAudioProcessor::updateAllfilterParams()
+void EQAudioProcessor::updateAllParams()
 {
     auto chainSettings = getChainSettings(apvts);
 
-    updateLowCutFilter(chainSettings);
+    updateHiPassFilter(chainSettings);
     updatePeakFilters(chainSettings);
-    updateHiCutFilter(chainSettings);
+    updateLowPassFilter(chainSettings);
     updateTotalGain(chainSettings);
 }
 

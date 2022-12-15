@@ -45,7 +45,7 @@ void update(Chaintype& chain, const CoefficientType& coefficeints)
 }
 
 template<typename ChainType, typename CoefficientType>
-void updateCutFilter(ChainType& chain, const CoefficientType& cutCoeffs, const Slope& passSlope)
+void updatePassFilter(ChainType& chain, const CoefficientType& cutCoeffs, const Slope& passSlope)
 {
     chain.template setBypassed<0>(true);
     chain.template setBypassed<1>(true);

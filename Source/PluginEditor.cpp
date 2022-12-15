@@ -21,10 +21,12 @@ EQAudioProcessorEditor::EQAudioProcessorEditor (EQAudioProcessor& p)
     }
 
     setSize (1000, 400);
+    setResizable(true, false);
 }
 
 EQAudioProcessorEditor::~EQAudioProcessorEditor(){}
 //==============================================================================
+
 
 void EQAudioProcessorEditor::resized()
 {
@@ -66,7 +68,18 @@ void EQAudioProcessorEditor::resized()
 void EQAudioProcessorEditor::paint(juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll(juce::Colours::steelblue.withBrightness(0.4f));
+    //juce::Colours::steelblue.withBrightness(0.4f)
+    
+    auto bounds = getLocalBounds();
+
+    gradient.point1 = juce::Point<float>(0, 0);
+    gradient.point2 = juce::Point<float>(bounds.getHeight(), bounds.getWidth());
+    
+    gradient.addColour(0, juce::Colours::steelblue.withBrightness(0.3f));
+    gradient.addColour(1, juce::Colours::steelblue.withBrightness(0.6f));
+
+    g.setGradientFill(gradient);
+    g.fillRect(bounds);
 }
 
 std::vector<juce::Component*> EQAudioProcessorEditor::getComponents()
@@ -90,3 +103,4 @@ std::vector<juce::Component*> EQAudioProcessorEditor::getComponents()
         &responseCurveComp
     };
 }
+

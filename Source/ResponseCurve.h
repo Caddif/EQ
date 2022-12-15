@@ -18,7 +18,11 @@ struct ResponseCurveComp :
     inline ResponseCurveComp(EQAudioProcessor&);
     inline ~ResponseCurveComp();
 
-    inline void parameterValueChanged(int parameterIndex, float newValue) override;
+    void parameterValueChanged(int parameterIndex, float newValue)
+    {
+        parametersChange.set(true);
+    }
+
     inline void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {}
     inline void timerCallback() override;
     inline void paint(juce::Graphics& g) override;
@@ -27,6 +31,8 @@ private:
     EQAudioProcessor& audioProcessor;
     juce::Atomic<bool> parametersChange{ true };
     MonoChain monochain;
+
+    //JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ResponseCurveComp)
 };
 
 ResponseCurveComp::ResponseCurveComp(EQAudioProcessor& p) : audioProcessor(p)
@@ -37,7 +43,7 @@ ResponseCurveComp::ResponseCurveComp(EQAudioProcessor& p) : audioProcessor(p)
         i->addListener(this);
     }
 
-    startTimerHz(60);
+    startTimerHz(144);
 }
 
 ResponseCurveComp::~ResponseCurveComp()
@@ -49,10 +55,10 @@ ResponseCurveComp::~ResponseCurveComp()
     }
 }
 
-void ResponseCurveComp::parameterValueChanged(int parameterIndex, float newValue)
+/*void ResponseCurveComp::parameterValueChanged(int parameterIndex, float newValue)
 {
     parametersChange.set(true);
-}
+}*/
 
 void ResponseCurveComp::timerCallback()
 {
@@ -68,11 +74,11 @@ void ResponseCurveComp::timerCallback()
         updateCoeffs(monochain.get<Chainpositons::Peak2>().coefficients, peakCoeffs2);
         updateCoeffs(monochain.get<Chainpositons::Peak3>().coefficients, peakCoeffs3);
 
-        auto lowCutCoeffs = makeHiPassFilter(chainSettings, audioProcessor.getSampleRate());
-        auto hiCutCoeffs = makeLowPassFilter(chainSettings, audioProcessor.getSampleRate());
+        auto hiPassCoeffs = makeHiPassFilter(chainSettings, audioProcessor.getSampleRate());
+        auto lowPassCoeffs = makeLowPassFilter(chainSettings, audioProcessor.getSampleRate());
 
-        updateCutFilter(monochain.get<Chainpositons::HiPass>(), lowCutCoeffs, chainSettings.HiPassSlope);
-        updateCutFilter(monochain.get<Chainpositons::LowPass>(), hiCutCoeffs, chainSettings.lowPassSlope);
+        updatePassFilter(monochain.get<Chainpositons::HiPass>(), hiPassCoeffs, chainSettings.HiPassSlope);
+        updatePassFilter(monochain.get<Chainpositons::LowPass>(), lowPassCoeffs, chainSettings.lowPassSlope);
 
         monochain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
 
