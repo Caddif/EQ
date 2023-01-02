@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-
-    Params.h
-    Created: 2 Nov 2022 6:59:54pm
-    Author:  Filip Tomeczek
-
-  ==============================================================================
-*/
-
 #pragma once
 
 enum Slope
@@ -25,6 +15,7 @@ struct ChainSettings {
     float peakFreq3{ 0 }, peakGainInDb3{ 0 }, peakQuality3{ 1.f };
     Slope HiPassSlope{ Slope::Slope12 }, lowPassSlope{ Slope::Slope12 };
     float totalGain{ 0 };
+    bool hfpBypass{ false }, peak1Bypass{ false }, peak2Bypass{ false }, peak3Bypass{ false }, lpfBypass{ false };
 };
 
 enum Chainpositons

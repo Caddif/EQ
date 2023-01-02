@@ -5,7 +5,16 @@
               cppLanguageStandard="17" companyName="MyCompEQ">
   <MAINGROUP id="aU7Zo2" name="EQ">
     <GROUP id="{732BA4F1-784C-EA95-A1AB-67C9666C0C56}" name="Source">
-      <FILE id="tkVNlB" name="ResponseCurve.h" compile="0" resource="0" file="Source/ResponseCurve.h"/>
+      <GROUP id="{AE96793B-7524-4553-B386-7A33A1B9CBE3}" name="DragableDots">
+        <FILE id="eCaSKb" name="DraggableDots.cpp" compile="1" resource="0"
+              file="Source/DraggableDots/DraggableDots.cpp"/>
+        <FILE id="sWBeou" name="DraggableDots.h" compile="0" resource="0" file="Source/DraggableDots/DraggableDots.h"/>
+      </GROUP>
+      <GROUP id="{5FD779F8-1D50-4F16-93FE-2D55DA37F398}" name="ResponseGraph">
+        <FILE id="XtCF1m" name="ResponseGraph.cpp" compile="1" resource="0"
+              file="Source/ResponseGraph/ResponseGraph.cpp"/>
+        <FILE id="DKawBa" name="ResponseGraph.h" compile="0" resource="0" file="Source/ResponseGraph/ResponseGraph.h"/>
+      </GROUP>
       <FILE id="LFjHgK" name="Params.h" compile="0" resource="0" file="Source/Params.h"/>
       <FILE id="h54Xdw" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>

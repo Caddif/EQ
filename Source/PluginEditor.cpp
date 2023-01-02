@@ -1,8 +1,3 @@
-/*
-  ==============================================================================
-    This file contains the basic framework code for a JUCE plugin editor.
-  ==============================================================================
-*/
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -10,7 +5,8 @@
 //==============================================================================
 EQAudioProcessorEditor::EQAudioProcessorEditor (EQAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p),
-    responseCurveComp(audioProcessor)
+    responseCurveComp(audioProcessor),
+    dots(audioProcessor)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -20,7 +16,7 @@ EQAudioProcessorEditor::EQAudioProcessorEditor (EQAudioProcessor& p)
         addAndMakeVisible(components);
     }
 
-    setSize (1000, 400);
+    setSize (1000, 500);
     setResizable(true, false);
 }
 
@@ -33,6 +29,7 @@ void EQAudioProcessorEditor::resized()
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
     auto bounds = getLocalBounds();
+    auto bypasses = bounds.removeFromBottom(bounds.getHeight() * 0.2);
     auto responseGraphArea = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.6));
     auto hiPassArea = bounds.removeFromBottom(static_cast<int>(bounds.getWidth() * 0.33));
     auto lowPassArea = hiPassArea.removeFromRight(static_cast<int>(hiPassArea.getWidth() * 0.50));
@@ -40,13 +37,26 @@ void EQAudioProcessorEditor::resized()
     auto peak2Area = bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.50));
     auto peak3Area = bounds;
 
+    auto gainArea = bypasses.removeFromRight(bypasses.getWidth() * 0.4);
+
+    bypasses.removeFromTop(bypasses.getHeight() * 0.33);
+    bypasses.removeFromBottom(bypasses.getHeight() * 0.5);
+    bypasses.removeFromLeft(20);
+
+    hpfBypass.setBounds(bypasses.removeFromLeft(bypasses.getWidth() * 0.2));
+    peak1Bypass.setBounds(bypasses.removeFromLeft(bypasses.getWidth() * 0.25));
+    peak2Bypass.setBounds(bypasses.removeFromLeft(bypasses.getWidth() * 0.33));
+    peak3Bypass.setBounds(bypasses.removeFromLeft(bypasses.getWidth() * 0.5));
+    lpfBypass.setBounds(bypasses);
+
     responseGraphArea.reduce(10, 10);
     responseCurveComp.setBounds(responseGraphArea);
+    dots.setBounds(responseGraphArea);
 
-    //hiPassFreqSlider.setBounds(hiPassArea.removeFromLeft(static_cast<int>(hiPassArea.getWidth() * 0.50)));
-    //hiPassSlopeSlider.setBounds(hiPassArea);
+    hiPassFreqSlider.setBounds(hiPassArea.removeFromLeft(static_cast<int>(hiPassArea.getWidth() * 0.50)));
+    hiPassSlopeSlider.setBounds(hiPassArea);
 
-    totalGainSlider.setBounds(hiPassArea);
+    totalGainSlider.setBounds(gainArea);
 
     lowPassFreqSlider.setBounds(lowPassArea.removeFromLeft(static_cast<int>(lowPassArea.getWidth() * 0.50)));
     lowPassSlopeSlider.setBounds(lowPassArea);
@@ -67,9 +77,6 @@ void EQAudioProcessorEditor::resized()
 
 void EQAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    //juce::Colours::steelblue.withBrightness(0.4f)
-    
     auto bounds = getLocalBounds();
 
     gradient.point1 = juce::Point<float>(0, 0);
@@ -100,7 +107,13 @@ std::vector<juce::Component*> EQAudioProcessorEditor::getComponents()
         &hiPassSlopeSlider,
         &lowPassSlopeSlider,
         &totalGainSlider,
-        &responseCurveComp
+        &responseCurveComp,
+        &hpfBypass,
+        &peak1Bypass,
+        &peak2Bypass,
+        &peak3Bypass,
+        &lpfBypass,
+        &dots
     };
 }
 

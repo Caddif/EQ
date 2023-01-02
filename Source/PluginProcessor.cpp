@@ -1,9 +1,3 @@
-/*
-  ==============================================================================
-    This file contains the basic framework code for a JUCE plugin processor.
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -93,10 +87,7 @@ void EQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    juce::dsp::ProcessSpec spec;
-    spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = 1;
-    spec.sampleRate = sampleRate;
+    juce::dsp::ProcessSpec spec{ sampleRate, samplesPerBlock, 1 };
 
     leftChain.prepare(spec);
     rightChain.prepare(spec);
@@ -142,8 +133,9 @@ bool EQAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+
+    //auto totalNumInputChannels  = getTotalNumInputChannels();
+    //auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     // In case we have more outputs than inputs, this code clears any output
     // channels that didn't contain input data, (because these aren't
@@ -151,13 +143,16 @@ void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    // for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+       // buffer.clear (i, 0, buffer.getNumSamples());
 
     // You must update parameters before processing audio
     updateAllParams();
+    checkBypass();
 
     juce::dsp::AudioBlock<float> block(buffer);
+
+    // 0 represents left and 1 right channel
     auto leftBlock = block.getSingleChannelBlock(0);
     auto rightBlock = block.getSingleChannelBlock(1);
 
@@ -205,11 +200,34 @@ void EQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 }
 
-void EQAudioProcessor::bypassHiPass()
+void EQAudioProcessor::bypassHiPass(const ChainSettings& chainSettings)
 {
-    // just testing
-    leftChain.setBypassed<HiPass>(true);
-    rightChain.setBypassed<HiPass>(true);
+    leftChain.setBypassed<HiPass>(chainSettings.hfpBypass);
+    rightChain.setBypassed<HiPass>(chainSettings.hfpBypass);
+}
+
+void EQAudioProcessor::bypassPeak1(const ChainSettings& chainSettings)
+{
+    leftChain.setBypassed<Peak>(chainSettings.peak1Bypass);
+    rightChain.setBypassed<Peak>(chainSettings.peak1Bypass);
+}
+
+void EQAudioProcessor::bypassPeak2(const ChainSettings& chainSettings)
+{
+    leftChain.setBypassed<Peak2>(chainSettings.peak2Bypass);
+    rightChain.setBypassed<Peak2>(chainSettings.peak2Bypass);
+}
+
+void EQAudioProcessor::bypassPeak3(const ChainSettings& chainSettings)
+{
+    leftChain.setBypassed<Peak3>(chainSettings.peak3Bypass);
+    rightChain.setBypassed<Peak3>(chainSettings.peak3Bypass);
+}
+
+void EQAudioProcessor::bypassLowPass(const ChainSettings& chainSettings)
+{
+    leftChain.setBypassed<LowPass>(chainSettings.lpfBypass);
+    rightChain.setBypassed<LowPass>(chainSettings.lpfBypass);
 }
 
 void EQAudioProcessor::updateTotalGain(const ChainSettings& chainSettings)
@@ -240,7 +258,6 @@ void updateCoeffs(Filter::CoefficientsPtr & old, const Filter::CoefficientsPtr &
 void EQAudioProcessor::updateHiPassFilter(const ChainSettings& chainSettings)
 {
     auto hiPassCoeffs = makeHiPassFilter(chainSettings, getSampleRate());
-    //bypassHiPass();
 
     auto& leftHiPass = leftChain.get<Chainpositons::HiPass>();
     auto& rightHiPass = rightChain.get<Chainpositons::HiPass>();
@@ -270,20 +287,39 @@ void EQAudioProcessor::updateAllParams()
     updateTotalGain(chainSettings);
 }
 
+void EQAudioProcessor::checkBypass()
+{
+    auto chainSettings = getChainSettings(apvts);
+
+    bypassHiPass(chainSettings);
+    bypassPeak1(chainSettings);
+    bypassPeak2(chainSettings);
+    bypassPeak3(chainSettings);
+    bypassLowPass(chainSettings);
+}
+
 juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     
     juce::StringArray stringArr;
+    juce::String str;
+
     for (int i = 0; i < 4; ++i) {
-        juce::String str;
         str << (12 + 12 * i);
         str << "db/Octave";
         stringArr.add(str);
+        str.clear();
     }
 
     layout.add(std::make_unique<juce::AudioParameterChoice>("HiPassSlope", "HiPassSlope", stringArr, 0));
     layout.add(std::make_unique<juce::AudioParameterChoice>("LowPassSlope", "LowPassSlope", stringArr, 0));
+
+    layout.add(std::make_unique<juce::AudioParameterBool>("HPFbypass", "HPFbypass", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Peak1bypass", "Peak1bypass", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Peak2bypass", "Peak2bypass", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Peak3bypass", "Peak3bypass", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("LPFbypass", "LPFbypass", false));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HiPassFreq", 
                                                            "HiPassFreq", 
@@ -366,6 +402,11 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     settings.HiPassSlope = static_cast<Slope>(apvts.getRawParameterValue("HiPassSlope")->load());
     settings.lowPassSlope = static_cast<Slope>(apvts.getRawParameterValue("LowPassSlope")->load());
     settings.totalGain = apvts.getRawParameterValue("TotalGain")->load();
+    settings.hfpBypass = apvts.getRawParameterValue("HPFbypass")->load();
+    settings.peak1Bypass = apvts.getRawParameterValue("Peak1bypass")->load();
+    settings.peak2Bypass = apvts.getRawParameterValue("Peak2bypass")->load();
+    settings.peak3Bypass = apvts.getRawParameterValue("Peak3bypass")->load();
+    settings.lpfBypass = apvts.getRawParameterValue("LPFbypass")->load();
 
     return settings;
 }

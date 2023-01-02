@@ -1,9 +1,3 @@
-/*
-  ==============================================================================
-    This file contains the basic framework code for a JUCE plugin processor.
-  ==============================================================================
-*/
-
 #pragma once
 
 #include "Params.h"
@@ -90,13 +84,19 @@ public:
 private:
     MonoChain leftChain, rightChain;
 
-    void bypassHiPass();
+    void bypassHiPass(const ChainSettings& chainSettings);
+    void bypassPeak1(const ChainSettings& chainSettings);
+    void bypassPeak2(const ChainSettings& chainSettings);
+    void bypassPeak3(const ChainSettings& chainSettings);
+    void bypassLowPass(const ChainSettings& chainSettings);
 
     void updatePeakFilters(const ChainSettings& ChainSettings);
     void updateHiPassFilter(const ChainSettings& chainSettings);
     void updateLowPassFilter(const ChainSettings& chainSettings);
     void updateTotalGain(const ChainSettings& chainSettings);
+
     void updateAllParams();
+    void checkBypass();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessor)

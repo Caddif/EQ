@@ -1,39 +1,4 @@
-/*
-  ==============================================================================
-
-    ResponseCurve.h
-    Created: 17 Nov 2022 3:10:09am
-    Author:  Filip Tomeczek
-
-  ==============================================================================
-*/
-
-#pragma once
-
-struct ResponseCurveComp :
-    juce::Component,
-    juce::AudioProcessorParameter::Listener,
-    juce::Timer
-{
-    inline ResponseCurveComp(EQAudioProcessor&);
-    inline ~ResponseCurveComp();
-
-    void parameterValueChanged(int parameterIndex, float newValue)
-    {
-        parametersChange.set(true);
-    }
-
-    inline void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override {}
-    inline void timerCallback() override;
-    inline void paint(juce::Graphics& g) override;
-
-private:
-    EQAudioProcessor& audioProcessor;
-    juce::Atomic<bool> parametersChange{ true };
-    MonoChain monochain;
-
-    //JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ResponseCurveComp)
-};
+#include "ResponseGraph.h"
 
 ResponseCurveComp::ResponseCurveComp(EQAudioProcessor& p) : audioProcessor(p)
 {
@@ -43,7 +8,8 @@ ResponseCurveComp::ResponseCurveComp(EQAudioProcessor& p) : audioProcessor(p)
         i->addListener(this);
     }
 
-    startTimerHz(144);
+    startTimerHz(60);
+    juce::Time::waitForMillisecondCounter(10);
 }
 
 ResponseCurveComp::~ResponseCurveComp()
@@ -55,10 +21,10 @@ ResponseCurveComp::~ResponseCurveComp()
     }
 }
 
-/*void ResponseCurveComp::parameterValueChanged(int parameterIndex, float newValue)
+void ResponseCurveComp::parameterValueChanged(int parameterIndex, float newValue)
 {
     parametersChange.set(true);
-}*/
+}
 
 void ResponseCurveComp::timerCallback()
 {
@@ -82,6 +48,12 @@ void ResponseCurveComp::timerCallback()
 
         monochain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
 
+        monochain.setBypassed<Chainpositons::HiPass>(chainSettings.hfpBypass);
+        monochain.setBypassed<Chainpositons::Peak>(chainSettings.peak1Bypass);
+        monochain.setBypassed<Chainpositons::Peak2>(chainSettings.peak2Bypass);
+        monochain.setBypassed<Chainpositons::Peak3>(chainSettings.peak3Bypass);
+        monochain.setBypassed<Chainpositons::LowPass>(chainSettings.lpfBypass);
+
         repaint();
     }
 }
@@ -91,8 +63,7 @@ void ResponseCurveComp::paint(juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(juce::Colours::black);
 
-    //auto bounds = getLocalBounds();
-    auto responseGraphArea = getLocalBounds(); //bounds.removeFromLeft(static_cast<int>(bounds.getWidth() * 0.5));
+    auto responseGraphArea = getLocalBounds(); 
 
     int graphWidth = responseGraphArea.getWidth();
 
@@ -112,32 +83,42 @@ void ResponseCurveComp::paint(juce::Graphics& g)
         double mag = 1.f;
         auto freq = juce::mapToLog10(double(i) / double(graphWidth), 20.0, 20000.0);
 
-        if (!hiPass.isBypassed<0>())
-            mag *= hiPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!hiPass.isBypassed<1>())
-            mag *= hiPass.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!hiPass.isBypassed<2>())
-            mag *= hiPass.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!hiPass.isBypassed<3>())
-            mag *= hiPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!monochain.isBypassed<HiPass>())
+        {
+            if (!hiPass.isBypassed<0>())
+                mag *= hiPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!hiPass.isBypassed<1>())
+                mag *= hiPass.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!hiPass.isBypassed<2>())
+                mag *= hiPass.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!hiPass.isBypassed<3>())
+                mag *= hiPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        }
 
-        if (!monochain.isBypassed<Chainpositons::Peak>())
-            mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<Chainpositons::Peak2>())
-            mag *= peak2.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!monochain.isBypassed<Peak>())
+            if (!monochain.isBypassed<Chainpositons::Peak>())
+                mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<Chainpositons::Peak3>())
-            mag *= peak3.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!monochain.isBypassed<Peak2>())
+            if (!monochain.isBypassed<Chainpositons::Peak2>())
+                mag *= peak2.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!lowPass.isBypassed<0>())
-            mag *= lowPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowPass.isBypassed<1>())
-            mag *= lowPass.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowPass.isBypassed<2>())
-            mag *= lowPass.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowPass.isBypassed<3>())
-            mag *= lowPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!monochain.isBypassed<Peak3>())
+            if (!monochain.isBypassed<Chainpositons::Peak3>())
+                mag *= peak3.coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+        if (!monochain.isBypassed<LowPass>()) 
+        {
+            if (!lowPass.isBypassed<0>())
+                mag *= lowPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!lowPass.isBypassed<1>())
+                mag *= lowPass.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!lowPass.isBypassed<2>())
+                mag *= lowPass.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!lowPass.isBypassed<3>())
+                mag *= lowPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        }
 
         magnitudes[i] = juce::Decibels::gainToDecibels(mag) + totalGain.getGainDecibels();
     }

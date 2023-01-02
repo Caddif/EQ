@@ -1,18 +1,14 @@
-/*
-  ==============================================================================
-    This file contains the basic framework code for a JUCE plugin editor.
-  ==============================================================================
-*/
 #pragma once
 
-#include "Params.h"
-#include "ResponseCurve.h"
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "Params.h"
+#include "ResponseGraph/ResponseGraph.h"
+#include "DraggableDots/DraggableDots.h"
 
-struct CustomSlider : juce::Slider
+struct ParamSlider : juce::Slider
 {
-    CustomSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) 
+    ParamSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) 
     {
         juce::Slider::setColour(ColourIds::thumbColourId, juce::Colours::silver);
         juce::Slider::setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.5f));
@@ -35,7 +31,21 @@ private:
     // access the processor object that created it.
     EQAudioProcessor& audioProcessor;
 
-    CustomSlider
+    juce::ToggleButton
+        hpfBypass{"HPF"},
+        peak1Bypass{"Peak 1"},
+        peak2Bypass{"Peak 2"},
+        peak3Bypass{"Peak 3"},
+        lpfBypass{"LPF"};
+
+    juce::AudioProcessorValueTreeState::ButtonAttachment
+        HPFbypassAtt{ audioProcessor.apvts, "HPFbypass", hpfBypass },
+        Peak1bypassAtt{ audioProcessor.apvts, "Peak1bypass", peak1Bypass },
+        Peak2bypassAtt{ audioProcessor.apvts, "Peak2bypass", peak2Bypass },
+        Peak3bypassAtt{ audioProcessor.apvts, "Peak3bypass", peak3Bypass },
+        LPFbypassAtt{ audioProcessor.apvts, "LPFbypass", lpfBypass };
+
+    ParamSlider
         peakFreqSlider,
         peakGainSlider, 
         peakQualSlider, 
@@ -50,7 +60,7 @@ private:
         hiPassSlopeSlider, 
         lowPassSlopeSlider,
         totalGainSlider;
-    
+
     juce::AudioProcessorValueTreeState::SliderAttachment
         peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
         peakGainSliderAtt{ audioProcessor.apvts, "PeakGain", peakGainSlider },
@@ -68,6 +78,7 @@ private:
         totalGainAtt{ audioProcessor.apvts, "TotalGain", totalGainSlider };
     
     ResponseCurveComp responseCurveComp;
+    DraggableDots dots;
     juce::ColourGradient gradient;
 
     std::vector<juce::Component*> getComponents();
