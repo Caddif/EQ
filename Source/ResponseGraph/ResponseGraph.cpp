@@ -8,7 +8,7 @@ ResponseCurveComp::ResponseCurveComp(EQAudioProcessor& p) : audioProcessor(p)
         i->addListener(this);
     }
 
-    startTimerHz(60);
+    startTimerHz(144);
     juce::Time::waitForMillisecondCounter(10);
 }
 
@@ -32,13 +32,13 @@ void ResponseCurveComp::timerCallback()
     {
         auto chainSettings = getChainSettings(audioProcessor.apvts);
 
-        auto peakCoeffs = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
-        auto peakCoeffs2 = makePeakFilter2(chainSettings, audioProcessor.getSampleRate());
-        auto peakCoeffs3 = makePeakFilter3(chainSettings, audioProcessor.getSampleRate());
+        auto peakCoeffs = makeFilter(chainSettings, audioProcessor.getSampleRate());
+        auto peakCoeffs2 = makeFilter2(chainSettings, audioProcessor.getSampleRate());
+        auto peakCoeffs3 = makeFilter3(chainSettings, audioProcessor.getSampleRate());
 
-        updateCoeffs(monochain.get<Chainpositons::Peak>().coefficients, peakCoeffs);
-        updateCoeffs(monochain.get<Chainpositons::Peak2>().coefficients, peakCoeffs2);
-        updateCoeffs(monochain.get<Chainpositons::Peak3>().coefficients, peakCoeffs3);
+        updateCoeffs(monochain.get<Chainpositons::Filter1>().coefficients, peakCoeffs);
+        updateCoeffs(monochain.get<Chainpositons::Filter2>().coefficients, peakCoeffs2);
+        updateCoeffs(monochain.get<Chainpositons::Filter3>().coefficients, peakCoeffs3);
 
         auto hiPassCoeffs = makeHiPassFilter(chainSettings, audioProcessor.getSampleRate());
         auto lowPassCoeffs = makeLowPassFilter(chainSettings, audioProcessor.getSampleRate());
@@ -49,9 +49,9 @@ void ResponseCurveComp::timerCallback()
         monochain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
 
         monochain.setBypassed<Chainpositons::HiPass>(chainSettings.hfpBypass);
-        monochain.setBypassed<Chainpositons::Peak>(chainSettings.peak1Bypass);
-        monochain.setBypassed<Chainpositons::Peak2>(chainSettings.peak2Bypass);
-        monochain.setBypassed<Chainpositons::Peak3>(chainSettings.peak3Bypass);
+        monochain.setBypassed<Chainpositons::Filter1>(chainSettings.peak1Bypass);
+        monochain.setBypassed<Chainpositons::Filter2>(chainSettings.peak2Bypass);
+        monochain.setBypassed<Chainpositons::Filter3>(chainSettings.peak3Bypass);
         monochain.setBypassed<Chainpositons::LowPass>(chainSettings.lpfBypass);
 
         repaint();
@@ -61,16 +61,16 @@ void ResponseCurveComp::timerCallback()
 void ResponseCurveComp::paint(juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll(juce::Colours::black);
+    g.fillAll(juce::Colours::darkgrey.withBrightness(0.15f));
 
     auto responseGraphArea = getLocalBounds(); 
 
     int graphWidth = responseGraphArea.getWidth();
 
     auto& hiPass = monochain.get<Chainpositons::HiPass>();
-    auto& peak = monochain.get<Chainpositons::Peak>();
-    auto& peak2 = monochain.get<Chainpositons::Peak2>();
-    auto& peak3 = monochain.get<Chainpositons::Peak3>();
+    auto& peak = monochain.get<Chainpositons::Filter1>();
+    auto& peak2 = monochain.get<Chainpositons::Filter2>();
+    auto& peak3 = monochain.get<Chainpositons::Filter3>();
     auto& lowPass = monochain.get<Chainpositons::LowPass>();
     auto& totalGain = monochain.get<Chainpositons::Gain>();
 
@@ -96,16 +96,16 @@ void ResponseCurveComp::paint(juce::Graphics& g)
         }
 
 
-        if (!monochain.isBypassed<Peak>())
-            if (!monochain.isBypassed<Chainpositons::Peak>())
+        if (!monochain.isBypassed<Filter1>())
+            if (!monochain.isBypassed<Chainpositons::Filter1>())
                 mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<Peak2>())
-            if (!monochain.isBypassed<Chainpositons::Peak2>())
+        if (!monochain.isBypassed<Filter2>())
+            if (!monochain.isBypassed<Chainpositons::Filter2>())
                 mag *= peak2.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<Peak3>())
-            if (!monochain.isBypassed<Chainpositons::Peak3>())
+        if (!monochain.isBypassed<Filter3>())
+            if (!monochain.isBypassed<Chainpositons::Filter3>())
                 mag *= peak3.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
         if (!monochain.isBypassed<LowPass>()) 
@@ -125,7 +125,7 @@ void ResponseCurveComp::paint(juce::Graphics& g)
 
     juce::Path responseCurve;
     const double maxOut = responseGraphArea.getY();
-    const double minOut = responseGraphArea.getBottom();
+    const double minOut = responseGraphArea.getHeight();
 
     auto map = [maxOut, minOut](double input)
     {

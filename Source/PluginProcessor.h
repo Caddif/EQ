@@ -3,21 +3,25 @@
 #include "Params.h"
 #include <JuceHeader.h>
 
-ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+EqChain getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+NoiseGateChain getNoiseGateChainSettings(juce::AudioProcessorValueTreeState& apvts);
+CompressorChain getCompressorChainSettings(juce::AudioProcessorValueTreeState& apvts);
 
-using TotalGain = juce::dsp::Gain<float>;
+using NoiseGateIn = juce::dsp::NoiseGate<float>;
+using CompressorIn = juce::dsp::Compressor<float>;
 using Filter = juce::dsp::IIR::Filter<float>;
+using TotalGain = juce::dsp::Gain<float>;
 using PassFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-using MonoChain = juce::dsp::ProcessorChain<PassFilter, Filter, Filter, Filter, PassFilter, TotalGain>;
+using MonoChain = juce::dsp::ProcessorChain<NoiseGateIn, CompressorIn, PassFilter, Filter, Filter, Filter, PassFilter, TotalGain>;
 
 void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements);
 
-Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
-Filter::CoefficientsPtr makePeakFilter2(const ChainSettings& chainSettings, double sampleRate);
-Filter::CoefficientsPtr makePeakFilter3(const ChainSettings& chainSettings, double sampleRate);
+Filter::CoefficientsPtr makeFilter(const EqChain& chainSettings, double sampleRate);
+Filter::CoefficientsPtr makeFilter2(const EqChain& chainSettings, double sampleRate);
+Filter::CoefficientsPtr makeFilter3(const EqChain& chainSettings, double sampleRate);
 
 
-inline auto makeHiPassFilter(const ChainSettings& chainSettings, double sampleRate)
+inline auto makeHiPassFilter(const EqChain& chainSettings, double sampleRate)
 {
     return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
         chainSettings.HiPassFreq,
@@ -25,7 +29,7 @@ inline auto makeHiPassFilter(const ChainSettings& chainSettings, double sampleRa
         2 * (chainSettings.HiPassSlope + 1));
 }
 
-inline auto makeLowPassFilter(const ChainSettings& chainSettings, double sampleRate)
+inline auto makeLowPassFilter(const EqChain& chainSettings, double sampleRate)
 {
     return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
         chainSettings.lowPassFreq,
@@ -84,19 +88,17 @@ public:
 private:
     MonoChain leftChain, rightChain;
 
-    void bypassHiPass(const ChainSettings& chainSettings);
-    void bypassPeak1(const ChainSettings& chainSettings);
-    void bypassPeak2(const ChainSettings& chainSettings);
-    void bypassPeak3(const ChainSettings& chainSettings);
-    void bypassLowPass(const ChainSettings& chainSettings);
+    void bypassedBands(const EqChain& chainSettings);
 
-    void updatePeakFilters(const ChainSettings& ChainSettings);
-    void updateHiPassFilter(const ChainSettings& chainSettings);
-    void updateLowPassFilter(const ChainSettings& chainSettings);
-    void updateTotalGain(const ChainSettings& chainSettings);
+    void updateGate(const NoiseGateChain& ngChain);
+    void updateCompressor(const CompressorChain& compChain);
+
+    void updateFilters(const EqChain& ChainSettings);
+    void updateHiPassFilter(const EqChain& chainSettings);
+    void updateLowPassFilter(const EqChain& chainSettings);
+    void updateTotalGain(const EqChain& chainSettings);
 
     void updateAllParams();
-    void checkBypass();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessor)

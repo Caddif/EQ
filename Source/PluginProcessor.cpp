@@ -134,8 +134,8 @@ void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 {
     juce::ScopedNoDenormals noDenormals;
 
-    //auto totalNumInputChannels  = getTotalNumInputChannels();
-    //auto totalNumOutputChannels = getTotalNumOutputChannels();
+    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     // In case we have more outputs than inputs, this code clears any output
     // channels that didn't contain input data, (because these aren't
@@ -143,12 +143,11 @@ void EQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    // for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-       // buffer.clear (i, 0, buffer.getNumSamples());
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        buffer.clear (i, 0, buffer.getNumSamples());
 
     // You must update parameters before processing audio
     updateAllParams();
-    checkBypass();
 
     juce::dsp::AudioBlock<float> block(buffer);
 
@@ -197,65 +196,82 @@ void EQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
         apvts.replaceState(valTree);
         updateAllParams();
     }
-
 }
 
-void EQAudioProcessor::bypassHiPass(const ChainSettings& chainSettings)
+void EQAudioProcessor::bypassedBands(const EqChain& chainSettings)
 {
     leftChain.setBypassed<HiPass>(chainSettings.hfpBypass);
     rightChain.setBypassed<HiPass>(chainSettings.hfpBypass);
-}
 
-void EQAudioProcessor::bypassPeak1(const ChainSettings& chainSettings)
-{
-    leftChain.setBypassed<Peak>(chainSettings.peak1Bypass);
-    rightChain.setBypassed<Peak>(chainSettings.peak1Bypass);
-}
+    leftChain.setBypassed<Filter1>(chainSettings.peak1Bypass);
+    rightChain.setBypassed<Filter1>(chainSettings.peak1Bypass);
 
-void EQAudioProcessor::bypassPeak2(const ChainSettings& chainSettings)
-{
-    leftChain.setBypassed<Peak2>(chainSettings.peak2Bypass);
-    rightChain.setBypassed<Peak2>(chainSettings.peak2Bypass);
-}
+    leftChain.setBypassed<Filter2>(chainSettings.peak2Bypass);
+    rightChain.setBypassed<Filter2>(chainSettings.peak2Bypass);
 
-void EQAudioProcessor::bypassPeak3(const ChainSettings& chainSettings)
-{
-    leftChain.setBypassed<Peak3>(chainSettings.peak3Bypass);
-    rightChain.setBypassed<Peak3>(chainSettings.peak3Bypass);
-}
+    leftChain.setBypassed<Filter3>(chainSettings.peak3Bypass);
+    rightChain.setBypassed<Filter3>(chainSettings.peak3Bypass);
 
-void EQAudioProcessor::bypassLowPass(const ChainSettings& chainSettings)
-{
     leftChain.setBypassed<LowPass>(chainSettings.lpfBypass);
     rightChain.setBypassed<LowPass>(chainSettings.lpfBypass);
 }
 
-void EQAudioProcessor::updateTotalGain(const ChainSettings& chainSettings)
+void EQAudioProcessor::updateGate(const NoiseGateChain& ngChain)
+{ 
+    leftChain.get<Chainpositons::NoiseGate>().setThreshold(ngChain.threshold);
+    rightChain.get<Chainpositons::NoiseGate>().setThreshold(ngChain.threshold);
+
+    leftChain.get<Chainpositons::NoiseGate>().setRatio(ngChain.ratio);
+    rightChain.get<Chainpositons::NoiseGate>().setRatio(ngChain.ratio);
+
+    leftChain.get<Chainpositons::NoiseGate>().setAttack(ngChain.attack);
+    rightChain.get<Chainpositons::NoiseGate>().setAttack(ngChain.attack);
+
+    leftChain.get<Chainpositons::NoiseGate>().setRelease(ngChain.release);
+    rightChain.get<Chainpositons::NoiseGate>().setRelease(ngChain.release);
+}
+
+void EQAudioProcessor::updateCompressor(const CompressorChain& compChain)
+{
+    leftChain.get<Chainpositons::Compressor>().setThreshold(compChain.threshold);
+    rightChain.get<Chainpositons::Compressor>().setThreshold(compChain.threshold);
+
+    leftChain.get<Chainpositons::Compressor>().setRatio(compChain.ratio);
+    rightChain.get<Chainpositons::Compressor>().setRatio(compChain.ratio);
+
+    leftChain.get<Chainpositons::Compressor>().setAttack(compChain.attack);
+    rightChain.get<Chainpositons::Compressor>().setAttack(compChain.attack);
+
+    leftChain.get<Chainpositons::Compressor>().setRelease(compChain.release);
+    rightChain.get<Chainpositons::Compressor>().setRelease(compChain.release);
+}
+
+void EQAudioProcessor::updateTotalGain(const EqChain& chainSettings)
 {
     leftChain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
     rightChain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
 }
 
-void EQAudioProcessor::updatePeakFilters(const ChainSettings& chainSettings)
+void EQAudioProcessor::updateFilters(const EqChain& chainSettings)
 {
-    auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
-    auto peakCoefficients2 = makePeakFilter2(chainSettings, getSampleRate());
-    auto peakCoefficients3 = makePeakFilter3(chainSettings, getSampleRate());
+    auto Coefficients = makeFilter(chainSettings, getSampleRate());
+    auto Coefficients2 = makeFilter2(chainSettings, getSampleRate());
+    auto Coefficients3 = makeFilter3(chainSettings, getSampleRate());
 
-    updateCoeffs(leftChain.get<Chainpositons::Peak>().coefficients, peakCoefficients);
-    updateCoeffs(rightChain.get<Chainpositons::Peak>().coefficients, peakCoefficients);
-    updateCoeffs(leftChain.get<Chainpositons::Peak2>().coefficients, peakCoefficients2);
-    updateCoeffs(rightChain.get<Chainpositons::Peak2>().coefficients, peakCoefficients2);
-    updateCoeffs(leftChain.get<Chainpositons::Peak3>().coefficients, peakCoefficients3);
-    updateCoeffs(rightChain.get<Chainpositons::Peak3>().coefficients, peakCoefficients3);
+    updateCoeffs(leftChain.get<Chainpositons::Filter1>().coefficients, Coefficients);
+    updateCoeffs(rightChain.get<Chainpositons::Filter1>().coefficients, Coefficients);
+    updateCoeffs(leftChain.get<Chainpositons::Filter2>().coefficients, Coefficients2);
+    updateCoeffs(rightChain.get<Chainpositons::Filter2>().coefficients, Coefficients2);
+    updateCoeffs(leftChain.get<Chainpositons::Filter3>().coefficients, Coefficients3);
+    updateCoeffs(rightChain.get<Chainpositons::Filter3>().coefficients, Coefficients3);
 }
 
-void updateCoeffs(Filter::CoefficientsPtr & old, const Filter::CoefficientsPtr & replacements)
+void updateCoeffs(Filter::CoefficientsPtr& old, const Filter::CoefficientsPtr& replacements)
 {
     *old = *replacements;
 }
 
-void EQAudioProcessor::updateHiPassFilter(const ChainSettings& chainSettings)
+void EQAudioProcessor::updateHiPassFilter(const EqChain& chainSettings)
 {
     auto hiPassCoeffs = makeHiPassFilter(chainSettings, getSampleRate());
 
@@ -266,7 +282,7 @@ void EQAudioProcessor::updateHiPassFilter(const ChainSettings& chainSettings)
     updatePassFilter(rightHiPass, hiPassCoeffs, chainSettings.HiPassSlope);
 }
 
-void EQAudioProcessor::updateLowPassFilter(const ChainSettings& chainSettings)
+void EQAudioProcessor::updateLowPassFilter(const EqChain& chainSettings)
 {
     auto lowPassCoeffs = makeLowPassFilter(chainSettings, getSampleRate());
 
@@ -280,46 +296,51 @@ void EQAudioProcessor::updateLowPassFilter(const ChainSettings& chainSettings)
 void EQAudioProcessor::updateAllParams()
 {
     auto chainSettings = getChainSettings(apvts);
+    auto noiseGateChain = getNoiseGateChainSettings(apvts);
+    auto compressorChain = getCompressorChainSettings(apvts);
+
+    updateGate(noiseGateChain);
+    updateCompressor(compressorChain);
 
     updateHiPassFilter(chainSettings);
-    updatePeakFilters(chainSettings);
+    updateFilters(chainSettings);
     updateLowPassFilter(chainSettings);
+    
     updateTotalGain(chainSettings);
-}
-
-void EQAudioProcessor::checkBypass()
-{
-    auto chainSettings = getChainSettings(apvts);
-
-    bypassHiPass(chainSettings);
-    bypassPeak1(chainSettings);
-    bypassPeak2(chainSettings);
-    bypassPeak3(chainSettings);
-    bypassLowPass(chainSettings);
+    bypassedBands(chainSettings);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createParameterLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     
-    juce::StringArray stringArr;
+    juce::StringArray stringArrSlope, filterToChoose;
     juce::String str;
 
     for (int i = 0; i < 4; ++i) {
         str << (12 + 12 * i);
         str << "db/Octave";
-        stringArr.add(str);
+        stringArrSlope.add(str);
         str.clear();
     }
 
-    layout.add(std::make_unique<juce::AudioParameterChoice>("HiPassSlope", "HiPassSlope", stringArr, 0));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("LowPassSlope", "LowPassSlope", stringArr, 0));
+    filterToChoose.add("Peakfilter");
+    filterToChoose.add("LowShelffilter");
+    filterToChoose.add("HighShelffilter");
+    filterToChoose.add("Notchfilter");
 
-    layout.add(std::make_unique<juce::AudioParameterBool>("HPFbypass", "HPFbypass", false));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HiPassSlope", "HiPassSlope", stringArrSlope, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowPassSlope", "LowPassSlope", stringArrSlope, 0));
+
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Filter1choice", "Filter1choice", filterToChoose, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Filter2choice", "Filter2choice", filterToChoose, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("Filter3choice", "Filter3choice", filterToChoose, 0));
+
+    layout.add(std::make_unique<juce::AudioParameterBool>("HPFbypass", "HPFbypass", true));
     layout.add(std::make_unique<juce::AudioParameterBool>("Peak1bypass", "Peak1bypass", false));
     layout.add(std::make_unique<juce::AudioParameterBool>("Peak2bypass", "Peak2bypass", false));
     layout.add(std::make_unique<juce::AudioParameterBool>("Peak3bypass", "Peak3bypass", false));
-    layout.add(std::make_unique<juce::AudioParameterBool>("LPFbypass", "LPFbypass", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("LPFbypass", "LPFbypass", true));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HiPassFreq", 
                                                            "HiPassFreq", 
@@ -381,24 +402,65 @@ juce::AudioProcessorValueTreeState::ParameterLayout EQAudioProcessor::createPara
                                                            juce::NormalisableRange<float>(-24.f, 24.f, 0.1f, 1.f),
                                                            0.f));
 
+    //  Noise gate and Compressor ///////////////////////////////////////////////////////////////////////////////////////////////////
+    layout.add(std::make_unique<juce::AudioParameterFloat>("ngThreshold",
+        "ngThreshold",
+        juce::NormalisableRange<float>(-92.f, 0.f, 0.5f, 1.f),
+        -48.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("ngRatio",
+        "ngRatio",
+        juce::NormalisableRange<float>(1.f, 100.f, 1.f, 0.6f),
+        1.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("ngAttack",
+        "ngAttack",
+        juce::NormalisableRange<float>(0.f, 150.f, 0.5f, 1.f),
+        0.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("ngRelease",
+        "ngRelease",
+        juce::NormalisableRange<float>(0.f, 150.f, 0.5f, 1.f),
+        0.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("compThreshold",
+        "compThreshold",
+        juce::NormalisableRange<float>(-60.f, 0.f, 1.f, 1.f),
+        0.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("compRatio",
+        "compRatio",
+        juce::NormalisableRange<float>(1.f, 40.f, 0.25f, 0.6f),
+        1.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("compAttack",
+        "compAttack",
+        juce::NormalisableRange<float>(0.f, 150.f, 0.5f, 1.f),
+        0.f));
+
+    layout.add(std::make_unique<juce::AudioParameterFloat>("compRelease",
+        "compRelease",
+        juce::NormalisableRange<float>(0.f, 150.f, 0.5f, 1.f),
+        0.f));
+
     return layout;
 }
 
-ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
+EqChain getChainSettings(juce::AudioProcessorValueTreeState& apvts)
 {
-    ChainSettings settings;
+    EqChain settings;
 
     settings.HiPassFreq = apvts.getRawParameterValue("HiPassFreq")->load();
     settings.lowPassFreq = apvts.getRawParameterValue("LowPassFreq")->load();
-    settings.peakFreq = apvts.getRawParameterValue("PeakFreq")->load();
-    settings.peakFreq2 = apvts.getRawParameterValue("PeakFreq2")->load();
-    settings.peakFreq3 = apvts.getRawParameterValue("PeakFreq3")->load();
-    settings.peakGainInDb = apvts.getRawParameterValue("PeakGain")->load();
-    settings.peakGainInDb2 = apvts.getRawParameterValue("PeakGain2")->load();
-    settings.peakGainInDb3 = apvts.getRawParameterValue("PeakGain3")->load();
-    settings.peakQuality = apvts.getRawParameterValue("PeakQual")->load();
-    settings.peakQuality2 = apvts.getRawParameterValue("PeakQual2")->load();
-    settings.peakQuality3 = apvts.getRawParameterValue("PeakQual3")->load();
+    settings.filterFreq = apvts.getRawParameterValue("PeakFreq")->load();
+    settings.filterFreq2 = apvts.getRawParameterValue("PeakFreq2")->load();
+    settings.filterFreq3 = apvts.getRawParameterValue("PeakFreq3")->load();
+    settings.gainInDb = apvts.getRawParameterValue("PeakGain")->load();
+    settings.gainInDb2 = apvts.getRawParameterValue("PeakGain2")->load();
+    settings.gainInDb3 = apvts.getRawParameterValue("PeakGain3")->load();
+    settings.filterQuality = apvts.getRawParameterValue("PeakQual")->load();
+    settings.filterQuality2 = apvts.getRawParameterValue("PeakQual2")->load();
+    settings.filterQuality3 = apvts.getRawParameterValue("PeakQual3")->load();
     settings.HiPassSlope = static_cast<Slope>(apvts.getRawParameterValue("HiPassSlope")->load());
     settings.lowPassSlope = static_cast<Slope>(apvts.getRawParameterValue("LowPassSlope")->load());
     settings.totalGain = apvts.getRawParameterValue("TotalGain")->load();
@@ -407,35 +469,116 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     settings.peak2Bypass = apvts.getRawParameterValue("Peak2bypass")->load();
     settings.peak3Bypass = apvts.getRawParameterValue("Peak3bypass")->load();
     settings.lpfBypass = apvts.getRawParameterValue("LPFbypass")->load();
+    settings.Filter1choice = static_cast<FilterToChoose>(apvts.getRawParameterValue("Filter1choice")->load());
+    settings.Filter2choice = static_cast<FilterToChoose>(apvts.getRawParameterValue("Filter2choice")->load());
+    settings.Filter3choice = static_cast<FilterToChoose>(apvts.getRawParameterValue("Filter3choice")->load());
 
     return settings;
 }
 
-Filter::CoefficientsPtr makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
+NoiseGateChain getNoiseGateChainSettings(juce::AudioProcessorValueTreeState& apvts)
 {
-    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        sampleRate,
-        chainSettings.peakFreq,
-        chainSettings.peakQuality,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb));
+    NoiseGateChain settings;
+
+    settings.threshold = apvts.getRawParameterValue("ngThreshold")->load();
+    settings.ratio = apvts.getRawParameterValue("ngRatio")->load();
+    settings.attack = apvts.getRawParameterValue("ngAttack")->load();
+    settings.release = apvts.getRawParameterValue("ngRelease")->load();
+
+    return settings;
 }
 
-Filter::CoefficientsPtr makePeakFilter2(const ChainSettings& chainSettings, double sampleRate)
+CompressorChain getCompressorChainSettings(juce::AudioProcessorValueTreeState& apvts)
 {
-    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        sampleRate,
-        chainSettings.peakFreq2,
-        chainSettings.peakQuality2,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb2));
+    CompressorChain settings;
+
+    settings.threshold = apvts.getRawParameterValue("compThreshold")->load();
+    settings.ratio = apvts.getRawParameterValue("compRatio")->load();
+    settings.attack = apvts.getRawParameterValue("compAttack")->load();
+    settings.release = apvts.getRawParameterValue("compRelease")->load();
+
+    return settings;
 }
 
-Filter::CoefficientsPtr makePeakFilter3(const ChainSettings& chainSettings, double sampleRate)
+Filter::CoefficientsPtr makeFilter(const EqChain& chainSettings, double sampleRate)
 {
-    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
-        sampleRate,
-        chainSettings.peakFreq3,
-        chainSettings.peakQuality3,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDb3));
+    if(chainSettings.Filter1choice == FilterToChoose::PeakFilter)
+        return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            sampleRate,
+            chainSettings.filterFreq,
+            chainSettings.filterQuality,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb));
+    else if(chainSettings.Filter1choice == FilterToChoose::LowShelfFilter)
+        return juce::dsp::IIR::Coefficients<float>::makeLowShelf(
+            sampleRate,
+            chainSettings.filterFreq,
+            chainSettings.filterQuality,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb));
+    else if (chainSettings.Filter1choice == FilterToChoose::HighShelfFilter)
+        return juce::dsp::IIR::Coefficients<float>::makeHighShelf(
+            sampleRate,
+            chainSettings.filterFreq,
+            chainSettings.filterQuality,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb));
+    else 
+        return juce::dsp::IIR::Coefficients<float>::makeNotch(
+            sampleRate,
+            chainSettings.filterFreq,
+            chainSettings.filterQuality);
+}
+
+Filter::CoefficientsPtr makeFilter2(const EqChain& chainSettings, double sampleRate)
+{
+    if (chainSettings.Filter2choice == FilterToChoose::PeakFilter)
+        return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            sampleRate,
+            chainSettings.filterFreq2,
+            chainSettings.filterQuality2,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb2));
+    else if (chainSettings.Filter2choice == FilterToChoose::LowShelfFilter)
+        return juce::dsp::IIR::Coefficients<float>::makeLowShelf(
+            sampleRate,
+            chainSettings.filterFreq2,
+            chainSettings.filterQuality2,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb2));
+    else if (chainSettings.Filter2choice == FilterToChoose::HighShelfFilter)
+        return juce::dsp::IIR::Coefficients<float>::makeHighShelf(
+            sampleRate,
+            chainSettings.filterFreq2,
+            chainSettings.filterQuality2,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb2));
+    else
+        return juce::dsp::IIR::Coefficients<float>::makeNotch(
+            sampleRate,
+            chainSettings.filterFreq2,
+            chainSettings.filterQuality2);
+}
+
+Filter::CoefficientsPtr makeFilter3(const EqChain& chainSettings, double sampleRate)
+{
+    if (chainSettings.Filter3choice == FilterToChoose::PeakFilter)
+        return juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            sampleRate,
+            chainSettings.filterFreq3,
+            chainSettings.filterQuality3,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb3));
+    else if (chainSettings.Filter3choice == FilterToChoose::LowShelfFilter)
+        return juce::dsp::IIR::Coefficients<float>::makeLowShelf(
+            sampleRate,
+            chainSettings.filterFreq3,
+            chainSettings.filterQuality3,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb3));
+    else if (chainSettings.Filter3choice == FilterToChoose::HighShelfFilter)
+        return juce::dsp::IIR::Coefficients<float>::makeHighShelf(
+            sampleRate,
+            chainSettings.filterFreq3,
+            chainSettings.filterQuality3,
+            juce::Decibels::decibelsToGain(chainSettings.gainInDb3));
+    else
+        return juce::dsp::IIR::Coefficients<float>::makeNotch(
+            sampleRate,
+            chainSettings.filterFreq3,
+            chainSettings.filterQuality3);
 }
 
 //==============================================================================

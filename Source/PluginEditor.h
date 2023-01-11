@@ -10,8 +10,44 @@ struct ParamSlider : juce::Slider
 {
     ParamSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow) 
     {
-        juce::Slider::setColour(ColourIds::thumbColourId, juce::Colours::silver);
-        juce::Slider::setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.5f));
+        this->setColour(ColourIds::thumbColourId, juce::Colours::silver);
+        this->setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.5f));
+    }
+};
+
+struct SlopeBox : juce::ComboBox
+{
+    SlopeBox(const juce::String& componentName = {}) : juce::ComboBox()
+    {
+        juce::String str;
+
+        for (int i = 0; i < 4; ++i) {
+            str << (12 + 12 * i);
+            str << " db/Octave";
+            this->addItem(str, i+1);
+            str.clear();
+        }
+    }
+};
+
+struct FilterChoice : juce::ComboBox
+{
+    FilterChoice(const juce::String& componentName = {}) : juce::ComboBox()
+    {
+        this->addItem("Peak Filter", 1);
+        this->addItem("Low Shelf Filter", 2);
+        this->addItem("High Shelf Filter", 3);
+        this->addItem("notch Filter", 4);
+    }
+};
+
+struct Bypassbuttons : juce::TextButton
+{
+    Bypassbuttons(const juce::String& buttonText) : juce::TextButton(buttonText)
+    {
+        this->setClickingTogglesState(true);
+        this->setAlwaysOnTop(true);
+        this->setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkred);
     }
 };
 
@@ -31,7 +67,7 @@ private:
     // access the processor object that created it.
     EQAudioProcessor& audioProcessor;
 
-    juce::ToggleButton
+    Bypassbuttons
         hpfBypass{"HPF"},
         peak1Bypass{"Peak 1"},
         peak2Bypass{"Peak 2"},
@@ -46,6 +82,16 @@ private:
         LPFbypassAtt{ audioProcessor.apvts, "LPFbypass", lpfBypass };
 
     ParamSlider
+        ngThresholdSlider,
+        ngRatioSlider,
+        ngAttackSlider,
+        ngReleaseSlider,
+
+        compThresholdSlider,
+        compRatioSlider,
+        compAttackSlider,
+        compReleaseSlider,
+
         peakFreqSlider,
         peakGainSlider, 
         peakQualSlider, 
@@ -55,13 +101,22 @@ private:
         peakFreqSlider3,
         peakGainSlider3,
         peakQualSlider3,
+
         hiPassFreqSlider, 
         lowPassFreqSlider, 
-        hiPassSlopeSlider, 
-        lowPassSlopeSlider,
         totalGainSlider;
 
     juce::AudioProcessorValueTreeState::SliderAttachment
+        ngThresholdSliderAtt{ audioProcessor.apvts, "ngThreshold", ngThresholdSlider },
+        ngRatioSliderAtt{ audioProcessor.apvts, "ngRatio", ngRatioSlider },
+        ngAttackSliderAtt{ audioProcessor.apvts, "ngAttack", ngAttackSlider },
+        ngReleaseSliderAtt{ audioProcessor.apvts, "ngRelease", ngReleaseSlider },
+
+        compThresholdSliderAtt{ audioProcessor.apvts, "compThreshold", compThresholdSlider },
+        compRatioSliderAtt{ audioProcessor.apvts, "compRatio", compRatioSlider },
+        compAttackSliderAtt{ audioProcessor.apvts, "compAttack", compAttackSlider },
+        compReleaseSliderAtt{ audioProcessor.apvts, "compRelease", compReleaseSlider },
+
         peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
         peakGainSliderAtt{ audioProcessor.apvts, "PeakGain", peakGainSlider },
         peakQualSliderAtt{ audioProcessor.apvts, "PeakQual", peakQualSlider },
@@ -71,12 +126,25 @@ private:
         peakFreqSliderAtt3{ audioProcessor.apvts, "PeakFreq3", peakFreqSlider3 },
         peakGainSliderAtt3{ audioProcessor.apvts, "PeakGain3", peakGainSlider3 },
         peakQualSliderAtt3{ audioProcessor.apvts, "PeakQual3", peakQualSlider3 },
+
         hiPassFreqSliderAtt{ audioProcessor.apvts, "HiPassFreq", hiPassFreqSlider },
         lowPassFreqSliderAtt{ audioProcessor.apvts, "LowPassFreq", lowPassFreqSlider },
-        hiPassSlopeSliderAtt{ audioProcessor.apvts, "HiPassSlope", hiPassSlopeSlider },
-        lowPassSlopeSliderAtt{ audioProcessor.apvts, "LowPassSlope", lowPassSlopeSlider },
         totalGainAtt{ audioProcessor.apvts, "TotalGain", totalGainSlider };
     
+    SlopeBox lpfSlope, hpfSlope;
+
+    juce::AudioProcessorValueTreeState::ComboBoxAttachment
+        lpfSlopeAtt{ audioProcessor.apvts, "LowPassSlope", lpfSlope },
+        hpfSlopeAtt{ audioProcessor.apvts, "HiPassSlope", hpfSlope };
+
+    FilterChoice Filter1choice, Filter2choice, Filter3choice;
+    juce::AudioProcessorValueTreeState::ComboBoxAttachment
+        Filter1choiceAtt{ audioProcessor.apvts, "Filter1choice", Filter1choice },
+        Filter2choiceAtt{ audioProcessor.apvts, "Filter2choice", Filter2choice },
+        Filter3choiceAtt{ audioProcessor.apvts, "Filter3choice", Filter3choice };
+
+    juce::Label bypasslabel{ "bypassLabel", "Bypass filters" };
+
     ResponseCurveComp responseCurveComp;
     DraggableDots dots;
     juce::ColourGradient gradient;

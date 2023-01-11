@@ -8,22 +8,53 @@ enum Slope
     Slope48
 };
 
-struct ChainSettings {
+enum class FilterToChoose
+{
+    PeakFilter,
+    LowShelfFilter,
+    HighShelfFilter,
+    NotchFilter
+};
+
+/**
+Remember that this sruct cannot be modified. 
+The only way to obtain values that are inside is by calling getChainSettings();
+*/
+struct EqChain {
     float HiPassFreq{ 0 }, lowPassFreq{ 0 };
-    float peakFreq{ 0 }, peakGainInDb{ 0 }, peakQuality{ 1.f };
-    float peakFreq2{ 0 }, peakGainInDb2{ 0 }, peakQuality2{ 1.f };
-    float peakFreq3{ 0 }, peakGainInDb3{ 0 }, peakQuality3{ 1.f };
+    float filterFreq{ 0 }, gainInDb{ 0 }, filterQuality{ 1.f };
+    float filterFreq2{ 0 }, gainInDb2{ 0 }, filterQuality2{ 1.f };
+    float filterFreq3{ 0 }, gainInDb3{ 0 }, filterQuality3{ 1.f };
     Slope HiPassSlope{ Slope::Slope12 }, lowPassSlope{ Slope::Slope12 };
+    FilterToChoose Filter1choice{ FilterToChoose::PeakFilter }, Filter2choice{ FilterToChoose::PeakFilter }, Filter3choice{ FilterToChoose::PeakFilter };
     float totalGain{ 0 };
-    bool hfpBypass{ false }, peak1Bypass{ false }, peak2Bypass{ false }, peak3Bypass{ false }, lpfBypass{ false };
+    bool hfpBypass{ true }, peak1Bypass{ false }, peak2Bypass{ false }, peak3Bypass{ false }, lpfBypass{ true };
+};
+
+struct NoiseGateChain 
+{
+    float threshold{ -48 };
+    float ratio{ 1 };
+    float attack{ 0 };
+    float release{ 0 };
+};
+
+struct CompressorChain
+{
+    float threshold{ -48 };
+    float ratio{ 1 };
+    float attack{ 0 };
+    float release{ 0 };
 };
 
 enum Chainpositons
 {
+    NoiseGate,
+    Compressor,
     HiPass,
-    Peak,
-    Peak2,
-    Peak3,
+    Filter1,
+    Filter2,
+    Filter3,
     LowPass,
     Gain
 };
@@ -45,22 +76,22 @@ void updatePassFilter(ChainType& chain, const CoefficientType& cutCoeffs, const 
 
     switch (passSlope)
     {
-    case Slope48:
-    {
-        update<3>(chain, cutCoeffs);
-    }
-    case Slope36:
-    {
-        update<2>(chain, cutCoeffs);
-    }
-    case Slope24:
-    {
-        update<1>(chain, cutCoeffs);
-    }
-    case Slope12:
-    {
-        update<0>(chain, cutCoeffs);
-    }
+        case Slope48:
+        {
+            update<3>(chain, cutCoeffs);
+        }
+        case Slope36:
+        {
+            update<2>(chain, cutCoeffs);
+        }
+        case Slope24:
+        {
+            update<1>(chain, cutCoeffs);
+        }
+        case Slope12:
+        {
+            update<0>(chain, cutCoeffs);
+        }
     }
 
 }
