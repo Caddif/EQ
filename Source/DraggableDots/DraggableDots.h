@@ -34,10 +34,11 @@ private:
 	void timerCallback() override;
 	void sliderValueChanged(juce::Slider* slider) override;
 
+	const double logsum = (std::log(10)) * 3.0;
 	juce::MathConstants<float> e_math;
 	std::vector<juce::Slider*> sliderPtr;
 
-	Dot hpf{ 0 }, peak1{ 1 }, peak2{ 2 }, peak3{ 3 }, lpf{ 4 };
+	Dot hpf{ 0 }, filter1{ 1 }, filter2{ 2 }, filter3{ 3 }, lpf{ 4 };
 
 	EQAudioProcessor& audioProcessor;
 

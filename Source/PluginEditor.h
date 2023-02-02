@@ -12,6 +12,7 @@ struct ParamSlider : juce::Slider
     {
         this->setColour(ColourIds::thumbColourId, juce::Colours::silver);
         this->setColour(ColourIds::rotarySliderFillColourId, juce::Colours::silver.darker(0.5f));
+        this->setColour(textBoxOutlineColourId, juce::Colours::silver.withAlpha(0.f));
     }
 };
 
@@ -37,7 +38,7 @@ struct FilterChoice : juce::ComboBox
         this->addItem("Peak Filter", 1);
         this->addItem("Low Shelf Filter", 2);
         this->addItem("High Shelf Filter", 3);
-        this->addItem("notch Filter", 4);
+        this->addItem("Notch Filter", 4);
     }
 };
 
@@ -60,6 +61,7 @@ public:
 
     //==============================================================================
     void paint (juce::Graphics&) override;
+    void paintlabels(juce::Graphics& g);
     void resized() override;
 
 private:
@@ -68,17 +70,21 @@ private:
     EQAudioProcessor& audioProcessor;
 
     Bypassbuttons
+        noiseGateBypass{"Noise Gate"},
+        compressorBypass{"Compressor"},
         hpfBypass{"HPF"},
-        peak1Bypass{"Peak 1"},
-        peak2Bypass{"Peak 2"},
-        peak3Bypass{"Peak 3"},
+        filter1bypass{"Filter 1"},
+        filter2bypass{"Filter 2"},
+        filter3bypass{"Filter 3"},
         lpfBypass{"LPF"};
 
     juce::AudioProcessorValueTreeState::ButtonAttachment
+        noiseGateBypassAtt{ audioProcessor.apvts, "ngBypass", noiseGateBypass },
+        compressorBypassAtt{ audioProcessor.apvts, "compBypass", compressorBypass },
         HPFbypassAtt{ audioProcessor.apvts, "HPFbypass", hpfBypass },
-        Peak1bypassAtt{ audioProcessor.apvts, "Peak1bypass", peak1Bypass },
-        Peak2bypassAtt{ audioProcessor.apvts, "Peak2bypass", peak2Bypass },
-        Peak3bypassAtt{ audioProcessor.apvts, "Peak3bypass", peak3Bypass },
+        Peak1bypassAtt{ audioProcessor.apvts, "Filter1bypass", filter1bypass },
+        Peak2bypassAtt{ audioProcessor.apvts, "Filter2bypass", filter2bypass },
+        Peak3bypassAtt{ audioProcessor.apvts, "Filter3bypass", filter3bypass },
         LPFbypassAtt{ audioProcessor.apvts, "LPFbypass", lpfBypass };
 
     ParamSlider
@@ -92,15 +98,15 @@ private:
         compAttackSlider,
         compReleaseSlider,
 
-        peakFreqSlider,
-        peakGainSlider, 
-        peakQualSlider, 
-        peakFreqSlider2,
-        peakGainSlider2,
-        peakQualSlider2,
-        peakFreqSlider3,
-        peakGainSlider3,
-        peakQualSlider3,
+        filter1FreqSlider,
+        filter1GainSlider,
+        filter1QualSlider,
+        filter2FreqSlider,
+        filter2GainSlider,
+        filter2QualSlider,
+        filter3FreqSlider,
+        filter3GainSlider,
+        filter3QualSlider,
 
         hiPassFreqSlider, 
         lowPassFreqSlider, 
@@ -117,15 +123,15 @@ private:
         compAttackSliderAtt{ audioProcessor.apvts, "compAttack", compAttackSlider },
         compReleaseSliderAtt{ audioProcessor.apvts, "compRelease", compReleaseSlider },
 
-        peakFreqSliderAtt{ audioProcessor.apvts, "PeakFreq", peakFreqSlider },
-        peakGainSliderAtt{ audioProcessor.apvts, "PeakGain", peakGainSlider },
-        peakQualSliderAtt{ audioProcessor.apvts, "PeakQual", peakQualSlider },
-        peakFreqSliderAtt2{ audioProcessor.apvts, "PeakFreq2", peakFreqSlider2 },
-        peakGainSliderAtt2{ audioProcessor.apvts, "PeakGain2", peakGainSlider2 },
-        peakQualSliderAtt2{ audioProcessor.apvts, "PeakQual2", peakQualSlider2 },
-        peakFreqSliderAtt3{ audioProcessor.apvts, "PeakFreq3", peakFreqSlider3 },
-        peakGainSliderAtt3{ audioProcessor.apvts, "PeakGain3", peakGainSlider3 },
-        peakQualSliderAtt3{ audioProcessor.apvts, "PeakQual3", peakQualSlider3 },
+        filter1FreqSliderAtt{ audioProcessor.apvts, "Filter1Freq", filter1FreqSlider },
+        filter1GainSliderAtt{ audioProcessor.apvts, "Filter1Gain", filter1GainSlider },
+        filter1QualSliderAtt{ audioProcessor.apvts, "Filter1Qual", filter1QualSlider },
+        filter2FreqSliderAtt{ audioProcessor.apvts, "Filter2Freq", filter2FreqSlider },
+        filter2GainSliderAtt{ audioProcessor.apvts, "Filter2Gain", filter2GainSlider },
+        filter2QualSliderAtt{ audioProcessor.apvts, "Filter2Qual", filter2QualSlider },
+        filter3FreqSliderAtt{ audioProcessor.apvts, "Filter3Freq", filter3FreqSlider },
+        filter3GainSliderAtt{ audioProcessor.apvts, "Filter3Gain", filter3GainSlider },
+        filter3QualSliderAtt{ audioProcessor.apvts, "Filter3Qual", filter3QualSlider },
 
         hiPassFreqSliderAtt{ audioProcessor.apvts, "HiPassFreq", hiPassFreqSlider },
         lowPassFreqSliderAtt{ audioProcessor.apvts, "LowPassFreq", lowPassFreqSlider },
@@ -143,13 +149,16 @@ private:
         Filter2choiceAtt{ audioProcessor.apvts, "Filter2choice", Filter2choice },
         Filter3choiceAtt{ audioProcessor.apvts, "Filter3choice", Filter3choice };
 
-    juce::Label bypasslabel{ "bypassLabel", "Bypass filters" };
+    juce::Label 
+        bypasslabel{ "bypassLabel", "Bypass filters" },
+        thresholdGate{ "thresholdGate", "threshold" };
 
     ResponseCurveComp responseCurveComp;
     DraggableDots dots;
     juce::ColourGradient gradient;
 
-    std::vector<juce::Component*> getComponents();
+    std::vector<juce::Component*> getSlidersAndButtons();
+    std::vector<juce::Component*> graphicalComponents();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQAudioProcessorEditor)
 };

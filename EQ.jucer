@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="rChGNr" name="EQ" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
-              cppLanguageStandard="17" companyName="MyCompEQ">
+              cppLanguageStandard="17" companyName="MyCompEQ" pluginVST3Category="EQ">
   <MAINGROUP id="aU7Zo2" name="EQ">
     <GROUP id="{732BA4F1-784C-EA95-A1AB-67C9666C0C56}" name="Source">
       <GROUP id="{AE96793B-7524-4553-B386-7A33A1B9CBE3}" name="DragableDots">

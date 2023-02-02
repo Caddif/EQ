@@ -20,7 +20,8 @@ public:
 private:
     EQAudioProcessor& audioProcessor;
     juce::Atomic<bool> parametersChange{ true };
-    MonoChain monochain;
+    AudioChain audiochain;
+    std::vector<float> lines;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ResponseCurveComp)
 };

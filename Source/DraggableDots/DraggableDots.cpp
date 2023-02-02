@@ -36,44 +36,44 @@ void Dot::paint(juce::Graphics& g)
 DraggableDots::DraggableDots(EQAudioProcessor& p) : audioProcessor(p)
 {
 	addAndMakeVisible(hpf);
-	addAndMakeVisible(peak1);
-	addAndMakeVisible(peak2);
-	addAndMakeVisible(peak3);
+	addAndMakeVisible(filter1);
+	addAndMakeVisible(filter2);
+	addAndMakeVisible(filter3);
 	addAndMakeVisible(lpf);
 
-	startTimerHz(144);
+	startTimerHz(60);
 
 	hpf.moveCallback = [&](juce::Point<double> position)
 	{
 		const auto bounds = getLocalBounds().toDouble();
-		sliderPtr[0]->setValue(20 * std::pow(e_math.euler, (3.f / bounds.getWidth()) * (hpf.getX()+hpf.dotSize/2) * (std::log(2) + std::log(5))));
+		sliderPtr[0]->setValue(20 * std::pow(e_math.euler, ((hpf.getX() + hpf.dotSize / 2) / (bounds.getWidth())) * logsum));
 	};
 
-	peak1.moveCallback = [&](juce::Point<double> position)
+	filter1.moveCallback = [&](juce::Point<double> position)
 	{
 		const auto bounds = getLocalBounds().toDouble();
-		sliderPtr[1]->setValue(20 * std::pow(e_math.euler, (3.f / bounds.getWidth()) * (peak1.getX() + peak1.dotSize / 2) * (std::log(2) + std::log(5))));
-		sliderPtr[2]->setValue(juce::jmap(static_cast<double>(peak1.getY()), static_cast<double>(-peak1.dotSize/2), bounds.getHeight()-peak1.dotSize/2, 24.0, -24.0));
+		sliderPtr[1]->setValue(20 * std::pow(e_math.euler, ((filter1.getX() + hpf.dotSize / 2) / (bounds.getWidth())) * logsum));
+		sliderPtr[2]->setValue(juce::jmap(static_cast<double>(filter1.getY()), static_cast<double>(-filter1.dotSize/2), bounds.getHeight()- filter1.dotSize/2, 24.0, -24.0));
 	};
 
-	peak2.moveCallback = [&](juce::Point<double> position)
+	filter2.moveCallback = [&](juce::Point<double> position)
 	{
 		const auto bounds = getLocalBounds().toDouble();
-		sliderPtr[3]->setValue(20 * std::pow(e_math.euler, (3.f / bounds.getWidth()) * (peak2.getX() + peak2.dotSize / 2) * (std::log(2) + std::log(5))));
-		sliderPtr[4]->setValue(juce::jmap(static_cast<double>(peak2.getY()), static_cast<double>(-peak2.dotSize / 2), bounds.getHeight() - peak2.dotSize / 2, 24.0, -24.0));
+		sliderPtr[3]->setValue(20 * std::pow(e_math.euler, ((filter2.getX() + hpf.dotSize / 2) / (bounds.getWidth())) * logsum));
+		sliderPtr[4]->setValue(juce::jmap(static_cast<double>(filter2.getY()), static_cast<double>(-filter2.dotSize / 2), bounds.getHeight() - filter2.dotSize / 2, 24.0, -24.0));
 	};
 
-	peak3.moveCallback = [&](juce::Point<double> position)
+	filter3.moveCallback = [&](juce::Point<double> position)
 	{
 		const auto bounds = getLocalBounds().toDouble();
-		sliderPtr[5]->setValue(20 * std::pow(e_math.euler, (3.f / bounds.getWidth()) * (peak3.getX() + peak3.dotSize / 2) * (std::log(2) + std::log(5))));
-		sliderPtr[6]->setValue(juce::jmap(static_cast<double>(peak3.getY()), static_cast<double>(-peak3.dotSize / 2), bounds.getHeight() - peak3.dotSize / 2, 24.0, -24.0));
+		sliderPtr[5]->setValue(20 * std::pow(e_math.euler, ((filter3.getX() + hpf.dotSize / 2) / (bounds.getWidth())) * logsum));
+		sliderPtr[6]->setValue(juce::jmap(static_cast<double>(filter3.getY()), static_cast<double>(-filter3.dotSize / 2), bounds.getHeight() - filter3.dotSize / 2, 24.0, -24.0));
 	};
 
 	lpf.moveCallback = [&](juce::Point<double> position)
 	{
 		const auto bounds = getLocalBounds().toDouble();
-		sliderPtr[7]->setValue(20 * std::pow(e_math.euler, (3.f / bounds.getWidth()) * (lpf.getX() + lpf.dotSize / 2) * (std::log(2) + std::log(5))));
+		sliderPtr[7]->setValue(20 * std::pow(e_math.euler, ((lpf.getX() + hpf.dotSize / 2) / (bounds.getWidth())) * logsum));
 	};
 }
 
@@ -87,19 +87,19 @@ DraggableDots::~DraggableDots()
 
 void DraggableDots::resized()
 {
-	auto chain = getChainSettings(audioProcessor.apvts);
+	auto chain = getEqChainSettings(audioProcessor.apvts);
 	auto bounds = getLocalBounds();
 
 	hpf.setTopLeftPosition((log10(chain.HiPassFreq / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2, bounds.getHeight() / 2 - hpf.dotSize / 2);
-	peak1.setTopLeftPosition(
-		(log10(chain.filterFreq / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2,
-		juce::jmap(static_cast<double>(chain.gainInDb), 24.0, -24.0, static_cast<double>(-peak1.dotSize / 2), static_cast<double>(bounds.getHeight() - peak1.dotSize / 2)));
-	peak2.setTopLeftPosition(
-		(log10(chain.filterFreq2 / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2,
-		juce::jmap(static_cast<double>(chain.gainInDb2), 24.0, -24.0, static_cast<double>(-peak1.dotSize / 2), static_cast<double>(bounds.getHeight() - peak1.dotSize / 2)));
-	peak3.setTopLeftPosition(
-		(log10(chain.filterFreq3 / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2,
-		juce::jmap(static_cast<double>(chain.gainInDb3), 24.0, -24.0, static_cast<double>(-peak1.dotSize / 2), static_cast<double>(bounds.getHeight() - peak1.dotSize / 2)));
+	filter1.setTopLeftPosition(
+		(log10(chain.filterFreq / 20.f) / 3) * bounds.getWidth() - filter1.dotSize / 2,
+		juce::jmap(static_cast<double>(chain.gainInDb), 24.0, -24.0, static_cast<double>(-filter1.dotSize / 2), static_cast<double>(bounds.getHeight() - filter1.dotSize / 2)));
+	filter2.setTopLeftPosition(
+		(log10(chain.filterFreq2 / 20.f) / 3) * bounds.getWidth() - filter2.dotSize / 2,
+		juce::jmap(static_cast<double>(chain.gainInDb2), 24.0, -24.0, static_cast<double>(-filter2.dotSize / 2), static_cast<double>(bounds.getHeight() - filter2.dotSize / 2)));
+	filter3.setTopLeftPosition(
+		(log10(chain.filterFreq3 / 20.f) / 3) * bounds.getWidth() - filter3.dotSize / 2,
+		juce::jmap(static_cast<double>(chain.gainInDb3), 24.0, -24.0, static_cast<double>(-filter3.dotSize / 2), static_cast<double>(bounds.getHeight() - filter3.dotSize / 2)));
 	lpf.setTopLeftPosition((log10(chain.lowPassFreq / 20.f) / 3) * bounds.getWidth() - lpf.dotSize / 2, bounds.getHeight() / 2 - lpf.dotSize / 2);
 }
 
@@ -111,37 +111,37 @@ void DraggableDots::registerSlider(juce::Slider* slider)
 
 void DraggableDots::timerCallback()
 {
-	if (hpf.isMouseOverOrDragging(true))
+	if (hpf.isMouseButtonDown())
 		hpf.repaint();
-	if (peak1.isMouseOverOrDragging(true))
-		peak1.repaint();
-	if (peak2.isMouseOverOrDragging(true))
-		peak2.repaint();
-	if (peak3.isMouseOverOrDragging(true))
-		peak3.repaint();
-	if (lpf.isMouseOverOrDragging(true))
+	if (filter1.isMouseButtonDown())
+		filter1.repaint();
+	if (filter2.isMouseButtonDown())
+		filter2.repaint();
+	if (filter3.isMouseButtonDown())
+		filter3.repaint();
+	if (lpf.isMouseButtonDown())
 		lpf.repaint();
 }
 
 void DraggableDots::sliderValueChanged(juce::Slider* slider)
 {
-	if (hpf.isMouseOverOrDragging(false) || 
-		peak1.isMouseOverOrDragging(false) || 
-		peak2.isMouseOverOrDragging(false) || 
-		peak3.isMouseOverOrDragging(false) || 
-		lpf.isMouseOverOrDragging(false))
+	if (hpf.isMouseButtonDown() || 
+		filter1.isMouseButtonDown() ||
+		filter2.isMouseButtonDown() ||
+		filter3.isMouseButtonDown() ||
+		lpf.isMouseButtonDown())
 		return;
 
 	auto bounds = getLocalBounds();
 	hpf.setTopLeftPosition((log10(sliderPtr[0]->getValue() / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2, bounds.getHeight()/2-hpf.dotSize/2);
-	peak1.setTopLeftPosition(
-		(log10(sliderPtr[1]->getValue() / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2, 
-		juce::jmap(static_cast<double>(sliderPtr[2]->getValue()), 24.0, -24.0,static_cast<double>(-peak1.dotSize / 2), static_cast<double>(bounds.getHeight() - peak1.dotSize / 2)));
-	peak2.setTopLeftPosition(
-		(log10(sliderPtr[3]->getValue() / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2,
-		juce::jmap(static_cast<double>(sliderPtr[4]->getValue()), 24.0, -24.0, static_cast<double>(-peak1.dotSize / 2), static_cast<double>(bounds.getHeight() - peak1.dotSize / 2)));
-	peak3.setTopLeftPosition(
-		(log10(sliderPtr[5]->getValue() / 20.f) / 3) * bounds.getWidth() - hpf.dotSize / 2,
-		juce::jmap(static_cast<double>(sliderPtr[6]->getValue()), 24.0, -24.0, static_cast<double>(-peak1.dotSize / 2), static_cast<double>(bounds.getHeight() - peak1.dotSize / 2)));
+	filter1.setTopLeftPosition(
+		(log10(sliderPtr[1]->getValue() / 20.f) / 3) * bounds.getWidth() - filter1.dotSize / 2,
+		juce::jmap(static_cast<double>(sliderPtr[2]->getValue()), 24.0, -24.0,static_cast<double>(-filter1.dotSize / 2), static_cast<double>(bounds.getHeight() - filter1.dotSize / 2)));
+	filter2.setTopLeftPosition(
+		(log10(sliderPtr[3]->getValue() / 20.f) / 3) * bounds.getWidth() - filter2.dotSize / 2,
+		juce::jmap(static_cast<double>(sliderPtr[4]->getValue()), 24.0, -24.0, static_cast<double>(-filter2.dotSize / 2), static_cast<double>(bounds.getHeight() - filter2.dotSize / 2)));
+	filter3.setTopLeftPosition(
+		(log10(sliderPtr[5]->getValue() / 20.f) / 3) * bounds.getWidth() - filter3.dotSize / 2,
+		juce::jmap(static_cast<double>(sliderPtr[6]->getValue()), 24.0, -24.0, static_cast<double>(-filter3.dotSize / 2), static_cast<double>(bounds.getHeight() - filter3.dotSize / 2)));
 	lpf.setTopLeftPosition((log10(sliderPtr[7]->getValue() / 20.f) / 3) * bounds.getWidth() - lpf.dotSize / 2, bounds.getHeight() / 2 - lpf.dotSize / 2);
 }

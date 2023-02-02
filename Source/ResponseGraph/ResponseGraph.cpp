@@ -8,8 +8,17 @@ ResponseCurveComp::ResponseCurveComp(EQAudioProcessor& p) : audioProcessor(p)
         i->addListener(this);
     }
 
-    startTimerHz(144);
-    juce::Time::waitForMillisecondCounter(10);
+    startTimerHz(60);
+
+    for (int i = 1; i < 101; i = i * 10)
+    {
+        lines.push_back(30.f * i);
+        lines.push_back(50.f * i);
+        lines.push_back(70.f * i);
+        lines.push_back(80.f * i);
+        lines.push_back(90.f * i);
+        lines.push_back(100.f * i);
+    }
 }
 
 ResponseCurveComp::~ResponseCurveComp()
@@ -19,6 +28,8 @@ ResponseCurveComp::~ResponseCurveComp()
     {
         i->removeListener(this);
     }
+
+    lines.clear();
 }
 
 void ResponseCurveComp::parameterValueChanged(int parameterIndex, float newValue)
@@ -30,29 +41,29 @@ void ResponseCurveComp::timerCallback()
 {
     if (parametersChange.compareAndSetBool(false, true))
     {
-        auto chainSettings = getChainSettings(audioProcessor.apvts);
+        auto chainSettings = getEqChainSettings(audioProcessor.apvts);
 
         auto peakCoeffs = makeFilter(chainSettings, audioProcessor.getSampleRate());
         auto peakCoeffs2 = makeFilter2(chainSettings, audioProcessor.getSampleRate());
         auto peakCoeffs3 = makeFilter3(chainSettings, audioProcessor.getSampleRate());
 
-        updateCoeffs(monochain.get<Chainpositons::Filter1>().coefficients, peakCoeffs);
-        updateCoeffs(monochain.get<Chainpositons::Filter2>().coefficients, peakCoeffs2);
-        updateCoeffs(monochain.get<Chainpositons::Filter3>().coefficients, peakCoeffs3);
+        updateCoeffs(audiochain.get<Chainpositons::Filter1>().coefficients, peakCoeffs);
+        updateCoeffs(audiochain.get<Chainpositons::Filter2>().coefficients, peakCoeffs2);
+        updateCoeffs(audiochain.get<Chainpositons::Filter3>().coefficients, peakCoeffs3);
 
         auto hiPassCoeffs = makeHiPassFilter(chainSettings, audioProcessor.getSampleRate());
         auto lowPassCoeffs = makeLowPassFilter(chainSettings, audioProcessor.getSampleRate());
 
-        updatePassFilter(monochain.get<Chainpositons::HiPass>(), hiPassCoeffs, chainSettings.HiPassSlope);
-        updatePassFilter(monochain.get<Chainpositons::LowPass>(), lowPassCoeffs, chainSettings.lowPassSlope);
+        updatePassFilter(audiochain.get<Chainpositons::HiPass>(), hiPassCoeffs, chainSettings.HiPassSlope);
+        updatePassFilter(audiochain.get<Chainpositons::LowPass>(), lowPassCoeffs, chainSettings.lowPassSlope);
 
-        monochain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
+        audiochain.get<Chainpositons::Gain>().setGainDecibels(chainSettings.totalGain);
 
-        monochain.setBypassed<Chainpositons::HiPass>(chainSettings.hfpBypass);
-        monochain.setBypassed<Chainpositons::Filter1>(chainSettings.peak1Bypass);
-        monochain.setBypassed<Chainpositons::Filter2>(chainSettings.peak2Bypass);
-        monochain.setBypassed<Chainpositons::Filter3>(chainSettings.peak3Bypass);
-        monochain.setBypassed<Chainpositons::LowPass>(chainSettings.lpfBypass);
+        audiochain.setBypassed<Chainpositons::HiPass>(chainSettings.hfpBypass);
+        audiochain.setBypassed<Chainpositons::Filter1>(chainSettings.filter1bypass);
+        audiochain.setBypassed<Chainpositons::Filter2>(chainSettings.filter2bypass);
+        audiochain.setBypassed<Chainpositons::Filter3>(chainSettings.filter3bypass);
+        audiochain.setBypassed<Chainpositons::LowPass>(chainSettings.lpfBypass);
 
         repaint();
     }
@@ -62,28 +73,32 @@ void ResponseCurveComp::paint(juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll(juce::Colours::darkgrey.withBrightness(0.15f));
+    g.setColour(juce::Colours::white.withAlpha(0.07f));
 
-    auto responseGraphArea = getLocalBounds(); 
+    for (auto i : lines)
+    {
+        g.drawVerticalLine(static_cast<int>((log10(i / 20.f) / 3) * getLocalBounds().getWidth()), 0, getLocalBounds().getHeight());
+    }
 
-    int graphWidth = responseGraphArea.getWidth();
-
-    auto& hiPass = monochain.get<Chainpositons::HiPass>();
-    auto& peak = monochain.get<Chainpositons::Filter1>();
-    auto& peak2 = monochain.get<Chainpositons::Filter2>();
-    auto& peak3 = monochain.get<Chainpositons::Filter3>();
-    auto& lowPass = monochain.get<Chainpositons::LowPass>();
-    auto& totalGain = monochain.get<Chainpositons::Gain>();
+    auto &hiPass = audiochain.get<Chainpositons::HiPass>();
+    auto &peak = audiochain.get<Chainpositons::Filter1>();
+    auto &peak2 = audiochain.get<Chainpositons::Filter2>();
+    auto &peak3 = audiochain.get<Chainpositons::Filter3>();
+    auto &lowPass = audiochain.get<Chainpositons::LowPass>();
+    auto &totalGain = audiochain.get<Chainpositons::Gain>();
 
     auto sampleRate = audioProcessor.getSampleRate();
     std::vector<double> magnitudes;
-    magnitudes.resize(graphWidth);
+    magnitudes.resize(getLocalBounds().getWidth());
 
-    for (int i = 0; i < graphWidth; ++i)
+    juce::Path responseCurve;
+
+    for (int i = 0; i < getLocalBounds().getWidth(); ++i)
     {
         double mag = 1.f;
-        auto freq = juce::mapToLog10(double(i) / double(graphWidth), 20.0, 20000.0);
+        auto freq = juce::mapToLog10(double(i) / static_cast<double>(getLocalBounds().getWidth()), 20.0, 20000.0);
 
-        if (!monochain.isBypassed<HiPass>())
+        if (!audiochain.isBypassed<HiPass>())
         {
             if (!hiPass.isBypassed<0>())
                 mag *= hiPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
@@ -95,20 +110,19 @@ void ResponseCurveComp::paint(juce::Graphics& g)
                 mag *= hiPass.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         }
 
-
-        if (!monochain.isBypassed<Filter1>())
-            if (!monochain.isBypassed<Chainpositons::Filter1>())
+        if (!audiochain.isBypassed<Filter1>())
+            if (!audiochain.isBypassed<Chainpositons::Filter1>())
                 mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<Filter2>())
-            if (!monochain.isBypassed<Chainpositons::Filter2>())
+        if (!audiochain.isBypassed<Filter2>())
+            if (!audiochain.isBypassed<Chainpositons::Filter2>())
                 mag *= peak2.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<Filter3>())
-            if (!monochain.isBypassed<Chainpositons::Filter3>())
+        if (!audiochain.isBypassed<Filter3>())
+            if (!audiochain.isBypassed<Chainpositons::Filter3>())
                 mag *= peak3.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!monochain.isBypassed<LowPass>()) 
+        if (!audiochain.isBypassed<LowPass>())
         {
             if (!lowPass.isBypassed<0>())
                 mag *= lowPass.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
@@ -123,20 +137,13 @@ void ResponseCurveComp::paint(juce::Graphics& g)
         magnitudes[i] = juce::Decibels::gainToDecibels(mag) + totalGain.getGainDecibels();
     }
 
-    juce::Path responseCurve;
-    const double maxOut = responseGraphArea.getY();
-    const double minOut = responseGraphArea.getHeight();
-
-    auto map = [maxOut, minOut](double input)
-    {
-        return juce::jmap(input, -24.0, 24.0, minOut, maxOut);
-    };
-
-    responseCurve.startNewSubPath(responseGraphArea.getX(), map(magnitudes.front()));
+    responseCurve.startNewSubPath(getLocalBounds().getX(),
+        juce::jmap(magnitudes.front(), -24.0, 24.0, static_cast<double>(getLocalBounds().getHeight()), static_cast<double>(getLocalBounds().getY())));
 
     for (size_t i = 0; i < magnitudes.size(); ++i)
     {
-        responseCurve.lineTo(responseGraphArea.getX() + i, map(magnitudes[i]));
+        responseCurve.lineTo(getLocalBounds().getX() + i,
+            juce::jmap(magnitudes[i], -24.0, 24.0, static_cast<double>(getLocalBounds().getHeight()), static_cast<double>(getLocalBounds().getY())));
     }
 
     g.setColour(juce::Colours::white);
